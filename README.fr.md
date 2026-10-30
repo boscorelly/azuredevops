@@ -32,14 +32,33 @@ Les identifiants expirent ou sont révoqués : quand ils sont refusés, l'erreur
 
 ### S'authentifier sans compte personnel (application Microsoft Entra)
 
-Un jeton d'accès personnel appartient à une personne : si son compte est désactivé, ou si le jeton expire, le projet cesse de fonctionner. Avec une **application Entra** (un *principal de service*), le plugin se connecte avec les identifiants propres de l'application, sans aucun compte personnel :
+Un jeton d'accès personnel appartient à une personne : si son compte est désactivé, ou si le jeton expire, le projet cesse de fonctionner. Avec une **application Entra** (un *principal de service*), le plugin se connecte avec les identifiants propres de l'application, sans aucun compte personnel. Cela se fait en trois étapes, **à trois endroits différents** :
 
-1. Dans Microsoft Entra (*Inscriptions d'applications > Nouvelle inscription*), enregistrez une application. Notez son **ID de répertoire (tenant)** et son **ID d'application (client)**.
-2. Dans *Certificats et secrets*, créez un **secret client** et copiez sa **Valeur** (pas son ID).
-3. Dans Azure DevOps, *Paramètres de l'organisation > Utilisateurs > Ajouter des utilisateurs* : ajoutez l'application (niveau d'accès **Basic**), puis donnez-lui accès au projet (par exemple comme membre de son groupe *Contributors*). L'organisation doit être rattachée au même tenant Entra. L'inscription dans Entra **ne suffit pas** : sans cette étape, Azure DevOps la refuse.
-4. Dans le plugin, choisissez *Application Microsoft Entra*, saisissez les trois valeurs et utilisez *Enregistrer et tester la connexion*.
+**A. Dans Microsoft Entra** (`https://entra.microsoft.com`, ou le portail Azure), avec un compte autorisé à inscrire des applications :
+
+1. *Applications > Inscriptions d'applications > Nouvelle inscription*. Donnez un nom reconnaissable, par exemple `GLPI Azure DevOps`.
+2. Sur la page *Vue d'ensemble* de l'application, copiez l'**ID d'application (client)** et l'**ID de l'annuaire (tenant)**.
+3. *Certificats et secrets > Nouveau secret client*. Copiez tout de suite la colonne **Valeur** (pas l'*ID du secret*) : elle ne sera plus jamais affichée.
+
+**B. Dans Azure DevOps** (`https://dev.azure.com/<votre-organisation>`), avec un membre du groupe *Project Collection Administrators* (les propriétaires de l'organisation en font partie) :
+
+1. Cliquez sur la roue dentée **Organization settings**, en bas à gauche.
+2. **Users > Add users**.
+3. Recherchez l'application **par le nom donné à l'étape A1**, puis réglez :
+   - **Access level** : `Basic` (voir *Niveau d'accès* ci-dessous) ;
+   - **Add to projects** : le projet Azure DevOps du projet du plugin ;
+   - **Azure DevOps Groups** : laissez `Project Contributors` (c'est ce qui permet à l'application de créer et modifier des éléments).
+4. Vérification : l'application apparaît dans *Organization settings > Users*, puis dans *Project settings > Permissions > Contributors > Members*.
+
+L'inscription dans Entra **ne suffit pas** : sans l'étape B, Azure DevOps la refuse (HTTP 401) alors qu'Entra a délivré un jeton. L'organisation doit aussi être rattachée au **même tenant Entra** (une organisation liée à un compte Microsoft personnel ne peut pas héberger d'application) : voir *Organization settings > Microsoft Entra*.
+
+**C. Dans le plugin** : *Configuration > Plugins > Azure DevOps*, ajoutez ou modifiez le projet, choisissez *Application Microsoft Entra*, saisissez l'ID du tenant, l'ID de l'application et la valeur du secret, puis *Enregistrer et tester la connexion*.
 
 Le plugin obtient un jeton d'accès auprès d'Entra (valable environ une heure), le garde chiffré dans le projet tant qu'il est valable, le renouvelle avant son expiration, et en redemande un une fois si Azure DevOps le refuse plus tôt (révoqué). Le secret client a aussi une date d'expiration, mais il appartient à l'application et non à une personne : renouvelez-le avant l'échéance. Les deux modes peuvent être renseignés ; celui qui est sélectionné est utilisé, on peut donc basculer sans ressaisir l'autre. Les clouds souverains utilisent une autre adresse de connexion : *Avancé > Adresse de connexion Microsoft Entra*.
+
+### Niveau d'accès du compte (Basic ou Stakeholder)
+
+Le compte derrière le jeton ou l'application a un **niveau d'accès** Azure DevOps. **Basic** est le choix sûr. **Stakeholder** (gratuit) est limité, et Microsoft documente qu'un Stakeholder peut voir, ajouter et modifier des éléments de travail mais **ne peut attribuer que des tags qui existent déjà** (il ne peut pas en créer). Comme le plugin ajoute les tags par défaut du projet (`glpi` sauf changement), un compte Stakeholder peut échouer à créer un élément tant que le tag n'existe pas. Avec un compte Stakeholder, laissez les tags par défaut vides, ou créez d'abord le tag depuis un compte qui le peut. En cas d'échec, le message d'Azure DevOps s'affiche dans GLPI et est écrit dans `files/_log/azuredevops.log`.
 
 ### Qui peut utiliser quel projet
 

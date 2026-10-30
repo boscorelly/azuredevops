@@ -2,6 +2,11 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.2
+- **The message of Azure DevOps is no longer lost on server errors (HTTP 5xx)**: it is shown in GLPI and recorded on the link, like for the other errors. Failures of the creation, linking and search are also written to `files/_log/azuredevops.log`.
+- The parent / work item search lists show the Azure DevOps error instead of an empty list.
+- Help on the **Stakeholder** access level (it can only use tags that already exist, which can make the creation fail while the default tag `glpi` does not exist) and a clearer step-by-step for the Entra application, in the form and in the README: where to click in Microsoft Entra and in Azure DevOps.
+
 ## 1.0.1
 - **Microsoft Entra application as an alternative to the personal access token**, chosen per project. A PAT belongs to a person and stops working when that account is disabled; an Entra application (service principal) is not tied to anybody. The plugin signs in with the client credentials (tenant ID, application ID, client secret), keeps the access token (encrypted) while it is valid, renews it before it expires, and retries once with a new one if Azure DevOps refuses it early.
 - The client secret is stored encrypted and never sent back to the browser; both modes can be filled in, the selected one is used.

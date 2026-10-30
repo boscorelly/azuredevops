@@ -17,6 +17,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Ticket;
+use Toolbox;
 
 /**
  * Actions of the "Azure DevOps" tab of a ticket. Besides the plugin's rights, every action checks that
@@ -46,6 +47,7 @@ final class WorkItemController extends AbstractController
             $this->flashCreated(__('Azure DevOps work item created: %s', 'azuredevops'), $res['link']);
             $this->flashWarnings($res['warnings']);
         } catch (AdoException | \RuntimeException $e) {
+            Toolbox::logInFile('azuredevops', sprintf("Creation failed (ticket %d, project %d): %s\n", $tickets_id, (int) $request->request->get('project_id', 0), $e->getMessage()));
             Session::addMessageAfterRedirect(htmlspecialchars($e->getMessage()), false, ERROR);
         }
 
@@ -71,6 +73,7 @@ final class WorkItemController extends AbstractController
             $this->flashCreated(__('Azure DevOps work item linked: %s', 'azuredevops'), $res['link']);
             $this->flashWarnings($res['warnings']);
         } catch (AdoException | \RuntimeException $e) {
+            Toolbox::logInFile('azuredevops', sprintf("Link failed (ticket %d, project %d): %s\n", $tickets_id, (int) $request->request->get('project_id', 0), $e->getMessage()));
             Session::addMessageAfterRedirect(htmlspecialchars($e->getMessage()), false, ERROR);
         }
 
@@ -137,6 +140,8 @@ final class WorkItemController extends AbstractController
         try {
             $items = Project::client($project)->searchWorkItems($types, (string) $request->query->get('term', ''), 20);
         } catch (AdoException $e) {
+            Toolbox::logInFile('azuredevops', sprintf("Search failed (project %d): %s\n", $id, $e->getMessage()));
+
             return new JsonResponse(['results' => [], 'error' => $e->getMessage()], Response::HTTP_BAD_GATEWAY);
         }
 

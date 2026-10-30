@@ -32,14 +32,33 @@ Credentials expire or get revoked: when they are refused, the error is shown in 
 
 ### Authenticate without a personal account (Microsoft Entra application)
 
-A personal access token belongs to a person: if that account is disabled, or the token expires, the project stops working. With an **Entra application** (a *service principal*), the plugin signs in with the application's own credentials and no personal account is involved:
+A personal access token belongs to a person: if that account is disabled, or the token expires, the project stops working. With an **Entra application** (a *service principal*), the plugin signs in with the application's own credentials and no personal account is involved. It takes three steps, **in three different places**:
 
-1. In Microsoft Entra (*App registrations > New registration*), register an application. Note its **Directory (tenant) ID** and **Application (client) ID**.
-2. In *Certificates & secrets*, create a **client secret** and copy its **Value** (not its ID).
-3. In Azure DevOps, *Organization settings > Users > Add users*: add the application (access level **Basic**), then give it access to the project (for example as a member of its *Contributors* group). The organization must be connected to the same Entra tenant. Registering the application in Entra is **not enough**: without this step Azure DevOps refuses it.
-4. In the plugin, choose *Microsoft Entra application*, enter the three values and use *Save and test the connection*.
+**A. In Microsoft Entra** (`https://entra.microsoft.com`, or the Azure portal), with an account allowed to register applications:
+
+1. *Applications > App registrations > New registration*. Give it a recognisable name, for example `GLPI Azure DevOps`.
+2. On the application's *Overview* page, copy the **Application (client) ID** and the **Directory (tenant) ID**.
+3. *Certificates & secrets > New client secret*. Copy the **Value** column (not the *Secret ID*) right away: it is never shown again.
+
+**B. In Azure DevOps** (`https://dev.azure.com/<your-organization>`), with a member of the *Project Collection Administrators* group (the organization owners are):
+
+1. Click the **Organization settings** gear, bottom left.
+2. **Users > Add users**.
+3. Search the application **by the name given in step A1**, then set:
+   - **Access level**: `Basic` (see *Access level* below);
+   - **Add to projects**: the Azure DevOps project of the plugin's project;
+   - **Azure DevOps Groups**: leave `Project Contributors` (this is what lets the application create and edit work items).
+4. Check: the application appears in *Organization settings > Users*, then in *Project settings > Permissions > Contributors > Members*.
+
+Registering the application in Entra is **not enough**: without step B, Azure DevOps refuses it (HTTP 401) although Entra gave a token. The organization must also be connected to the **same Entra tenant** (an organization tied to a personal Microsoft account cannot host an application): see *Organization settings > Microsoft Entra*.
+
+**C. In the plugin**: *Setup > Plugins > Azure DevOps*, add or edit the project, choose *Microsoft Entra application*, enter the tenant ID, the application ID and the secret value, then *Save and test the connection*.
 
 The plugin gets an access token from Entra (valid about an hour), keeps it encrypted in the project while it is valid, renews it before it expires, and asks for a new one once if Azure DevOps refuses it earlier (revoked). The client secret has an expiry date too, but it belongs to the application, not to a person: renew it before it ends. Both modes can be filled in; the one selected is used, so you can switch without typing the other credentials again. Sovereign clouds use another sign-in address: *Advanced > Microsoft Entra sign-in address*.
+
+### Access level of the account (Basic or Stakeholder)
+
+The account behind the token or the application has an Azure DevOps **access level**. **Basic** is the safe choice. **Stakeholder** (free) is limited, and Microsoft documents that a Stakeholder can view, add and edit work items but **can only assign tags that already exist** (it cannot create new ones). Since the plugin adds the project's default tags (`glpi` unless you change it), a Stakeholder account can fail to create a work item while the tag does not exist yet. With a Stakeholder account, leave the default tags empty, or create the tag first from an account that can. If something fails, the message of Azure DevOps is shown in GLPI and written to `files/_log/azuredevops.log`.
 
 ### Who can use which project
 

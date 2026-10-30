@@ -65,7 +65,7 @@
                        placeholder="{{ has_secret ? __('(unchanged)', 'azuredevops') : '' }}">
                 <div class="form-text">{{ __('The secret value (not its ID). It is stored encrypted, never shown again, and used only for this project.', 'azuredevops') }}</div>
                 <div class="alert alert-info mt-3 mb-0">
-                    {{ __('Before it can work, the application must be registered in Microsoft Entra ID and added to Azure DevOps as a user: Organization settings > Users > Add users (access level Basic), then give it access to the project (for example as a member of its Contributors group). The organization must be connected to the same Entra tenant.', 'azuredevops') }}
+                    {{ __('Before it can work, two things must be done outside GLPI. 1) In Microsoft Entra: register the application and create a client secret. 2) In Azure DevOps: Organization settings (gear, bottom left) > Users > Add users, search the application by its name, access level Basic, "Add to projects": this project, group "Project Contributors". The organization must be connected to the same Entra tenant. The README gives the steps one by one.', 'azuredevops') }}
                 </div>
             </div>
 
@@ -141,7 +141,7 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label" for="ado_tags">{{ __('Default tags', 'azuredevops') }}</label>
                     <input id="ado_tags" type="text" name="default_tags" class="form-control" value="{{ project.default_tags }}">
-                    <div class="form-text">{{ __('Comma separated.', 'azuredevops') }}</div>
+                    <div class="form-text">{{ __('Comma separated. An account with the "Stakeholder" access level can only use tags that already exist in the project: leave this empty, or create the tag first.', 'azuredevops') }}</div>
                 </div>
             </div>
         </div>

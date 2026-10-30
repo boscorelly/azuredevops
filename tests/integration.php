@@ -420,7 +420,7 @@ $stats = Sync::run(200);
 ok('429: run aborted, nothing lost', $stats['aborted'] === true && linkOf($lr->getID())['state'] === 'opened' && str_contains((string) linkOf($lr->getID())['last_error'], '429'));
 mock('/_mock/fail', ['status' => 500]);
 $stats = Sync::run(200);
-ok('500: error recorded, stays opened', linkOf($lr->getID())['state'] === 'opened' && str_contains((string) linkOf($lr->getID())['last_error'], '500') && $stats['errors'] >= 1);
+ok('500: error recorded with the message of Azure DevOps, stays opened', linkOf($lr->getID())['state'] === 'opened' && str_contains((string) linkOf($lr->getID())['last_error'], '500') && str_contains((string) linkOf($lr->getID())['last_error'], 'forced failure') && $stats['errors'] >= 1, (string) linkOf($lr->getID())['last_error']);
 mock('/_mock/fail', ['status' => 0]);
 runCron();
 ok('back to normal: pending closure processed', linkOf($lr->getID())['state'] === 'closed' && linkOf($lr->getID())['last_error'] === null);

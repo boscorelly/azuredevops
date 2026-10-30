@@ -49,8 +49,8 @@ msgid "Azure DevOps rate limit reached (HTTP 429)"
 msgstr "Limite de débit d'Azure DevOps atteinte (HTTP 429)"
 
 #: src/AdoClient.php
-msgid "Azure DevOps server error (HTTP %d)"
-msgstr "Erreur du serveur Azure DevOps (HTTP %d)"
+msgid "Azure DevOps server error (HTTP %d)%s"
+msgstr "Erreur du serveur Azure DevOps (HTTP %d)%s"
 
 #: src/AdoClient.php
 msgid "Azure DevOps rejected the request (HTTP %d)%s"
@@ -653,8 +653,8 @@ msgid "The secret value (not its ID). It is stored encrypted, never shown again,
 msgstr "La valeur du secret (pas son identifiant). Il est stocké chiffré, jamais ré-affiché, et utilisé uniquement pour ce projet."
 
 #: templates/project.html.twig
-msgid "Before it can work, the application must be registered in Microsoft Entra ID and added to Azure DevOps as a user: Organization settings > Users > Add users (access level Basic), then give it access to the project (for example as a member of its Contributors group). The organization must be connected to the same Entra tenant."
-msgstr "Pour fonctionner, l'application doit être enregistrée dans Microsoft Entra ID et ajoutée à Azure DevOps comme utilisateur : Paramètres de l'organisation > Utilisateurs > Ajouter des utilisateurs (niveau d'accès Basic), puis lui donner accès au projet (par exemple comme membre de son groupe Contributors). L'organisation doit être rattachée au même tenant Entra."
+msgid "Before it can work, two things must be done outside GLPI. 1) In Microsoft Entra: register the application and create a client secret. 2) In Azure DevOps: Organization settings (gear, bottom left) > Users > Add users, search the application by its name, access level Basic, \"Add to projects\": this project, group \"Project Contributors\". The organization must be connected to the same Entra tenant. The README gives the steps one by one."
+msgstr "Pour fonctionner, deux choses doivent être faites en dehors de GLPI. 1) Dans Microsoft Entra : enregistrer l'application et créer un secret client. 2) Dans Azure DevOps : Organization settings (roue dentée, en bas à gauche) > Users > Add users, rechercher l'application par son nom, niveau d'accès Basic, « Add to projects » : ce projet, groupe « Project Contributors ». L'organisation doit être rattachée au même tenant Entra. Le README donne les étapes une par une."
 
 #: templates/project.html.twig
 msgid "An inactive project cannot be chosen, and its work items are not checked."
@@ -713,8 +713,8 @@ msgid "Default tags"
 msgstr "Tags par défaut"
 
 #: templates/project.html.twig
-msgid "Comma separated."
-msgstr "Séparés par des virgules."
+msgid "Comma separated. An account with the \"Stakeholder\" access level can only use tags that already exist in the project: leave this empty, or create the tag first."
+msgstr "Séparés par des virgules. Un compte de niveau d'accès « Stakeholder » ne peut utiliser que des tags qui existent déjà dans le projet : laissez ce champ vide, ou créez d'abord le tag."
 
 #: templates/project.html.twig
 msgid "Who can use this project"

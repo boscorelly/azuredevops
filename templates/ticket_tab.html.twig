@@ -171,7 +171,17 @@
                         ajax: {
                             url: function () { return base + '/Projects/' + $project.val() + '/Search'; },
                             dataType: 'json', delay: 300,
-                            data: function (params) { return {term: params.term || '', scope: scope}; }
+                            data: function (params) { return {term: params.term || '', scope: scope}; },
+                            // An Azure DevOps error is shown in the list (it is also in files/_log/azuredevops.log)
+                            transport: function (params, success, failure) {
+                                var request = $.ajax(params);
+                                request.then(success);
+                                request.fail(function (xhr) {
+                                    var message = xhr.responseJSON && xhr.responseJSON.error;
+                                    if (message) { success({results: [{id: '', text: '\u26A0 ' + message, disabled: true}]}); } else { failure(); }
+                                });
+                                return request;
+                            }
                         }
                     });
                 }

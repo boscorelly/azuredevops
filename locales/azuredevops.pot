@@ -49,7 +49,7 @@ msgid "Azure DevOps rate limit reached (HTTP 429)"
 msgstr ""
 
 #: src/AdoClient.php
-msgid "Azure DevOps server error (HTTP %d)"
+msgid "Azure DevOps server error (HTTP %d)%s"
 msgstr ""
 
 #: src/AdoClient.php
@@ -653,7 +653,7 @@ msgid "The secret value (not its ID). It is stored encrypted, never shown again,
 msgstr ""
 
 #: templates/project.html.twig
-msgid "Before it can work, the application must be registered in Microsoft Entra ID and added to Azure DevOps as a user: Organization settings > Users > Add users (access level Basic), then give it access to the project (for example as a member of its Contributors group). The organization must be connected to the same Entra tenant."
+msgid "Before it can work, two things must be done outside GLPI. 1) In Microsoft Entra: register the application and create a client secret. 2) In Azure DevOps: Organization settings (gear, bottom left) > Users > Add users, search the application by its name, access level Basic, \"Add to projects\": this project, group \"Project Contributors\". The organization must be connected to the same Entra tenant. The README gives the steps one by one."
 msgstr ""
 
 #: templates/project.html.twig
@@ -713,7 +713,7 @@ msgid "Default tags"
 msgstr ""
 
 #: templates/project.html.twig
-msgid "Comma separated."
+msgid "Comma separated. An account with the \"Stakeholder\" access level can only use tags that already exist in the project: leave this empty, or create the tag first."
 msgstr ""
 
 #: templates/project.html.twig

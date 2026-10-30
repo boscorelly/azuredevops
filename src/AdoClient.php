@@ -162,7 +162,7 @@ class AdoClient
                 (int) $retry_after
             ),
             $status >= 500 => new AdoException(
-                sprintf(__('Azure DevOps server error (HTTP %d)', 'azuredevops'), $status),
+                sprintf(__('Azure DevOps server error (HTTP %d)%s', 'azuredevops'), $status, $suffix),
                 AdoException::SERVER,
                 $status
             ),

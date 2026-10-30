@@ -113,7 +113,7 @@ check('project POST without CSRF rejected', s in (400, 403), str(s))
 print('== administrator: a project that signs in as a Microsoft Entra application')
 s, page, _ = a.req(f'{P}/Config/Project')
 check('form offers both authentication modes', 'name="auth_mode" value="pat"' in page and 'name="auth_mode" value="entra"' in page and 'name="tenant_id"' in page and 'name="client_id"' in page and 'name="client_secret"' in page, str(s))
-check('the Entra set-up instructions are on the form', either(page, 'added to Azure DevOps as a user', 'ajoutée à Azure DevOps comme utilisateur'), text(page)[:200])
+check('the Entra set-up instructions are on the form', either(page, 'Organization settings (gear, bottom left)', 'Organization settings (roue dentée, en bas à gauche)'), text(page)[:200])
 ctok = form_token(page, f'{P}/Config/Project')
 s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': ctok, 'id': '0', 'name': 'WebEntra', 'organization': 'acme', 'ado_project': 'Tata', 'auth_mode': 'entra',
                 'tenant_id': 'tenant-1', 'client_id': 'app-tata', 'client_secret': 'secret-tata', 'is_active': '1', 'is_restricted': '1', 'workitem_type': 'Issue',
@@ -145,6 +145,24 @@ s, body, _ = a.req(f'{P}/Projects/{toto}/Search?term=story&scope=parents', heade
 check('parent search does not return User Stories', s == 200 and json.loads(body)['results'] == [], body[:200])
 s, body, _ = a.req(f'{P}/Projects/{toto}/Search?term=story&scope=items', headers={'X-Requested-With': 'XMLHttpRequest'})
 check('item search (link existing) does', s == 200 and 700 in [r['id'] for r in json.loads(body)['results']], body[:300])
+
+
+print('== administrator: errors of Azure DevOps are shown, and logged')
+LOG = '/opt/glpi/files/_log/azuredevops.log'
+def log_text():
+    return open(LOG).read() if os.path.exists(LOG) else ''
+mock('/_mock/fail', {'status': 500})
+s, body, _ = a.req(f'{P}/Projects/{toto}/Search?term=x&scope=parents', headers={'X-Requested-With': 'XMLHttpRequest'})
+check('a failing search answers 502 with the message of Azure DevOps (displayed in the list)', s == 502 and 'forced failure' in json.loads(body).get('error', ''), f'{s} {body[:200]}')
+check('the search failure is in the plugin log', 'Search failed' in log_text())
+t5 = new_ticket()
+s, page, _ = tab(a, t5, tok)
+ft5 = form_token(page, f'{P}/Ticket/{t5}/WorkItem')
+s, _, _ = a.req(f'{P}/Ticket/{t5}/WorkItem', {'_glpi_csrf_token': ft5, 'project_id': str(toto), 'followup': 'none', 'notify_requester': '0'})
+s, page, _ = a.req(f'/front/ticket.form.php?id={t5}')
+check('a failing creation shows the message of Azure DevOps on the ticket', 'forced failure' in page and sql(f"select count(*) from glpi_plugin_azuredevops_links where tickets_id={t5}") == '0', text(page)[:200])
+check('the creation failure is in the plugin log', 'Creation failed' in log_text())
+mock('/_mock/fail', {'status': 0})
 
 print('== administrator: create, link and unlink from the ticket tab')
 t2 = new_ticket()
