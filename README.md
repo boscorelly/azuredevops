@@ -23,7 +23,7 @@ Tested on **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) against a mock of the Azure 
 | Authentication | **Personal access token (PAT)** or **Microsoft Entra application** (see below) |
 | Access token (PAT) | A personal access token with the **Work Items (Read & write)** and **Project and Team (Read)** scopes, whose owner can work on the project. Stored **encrypted** (GLPI's key), never shown again, used **only for this project** |
 | Default type | `User Story` (Agile), `Product Backlog Item` (Scrum), `Issue` (Basic)… chosen from the types read by *Save and test the connection*: created when the technician does not choose another one |
-| Other types offered | Types the technician can choose in the ticket (for example `Bug`), picked among those of the project; empty = only the default type |
+| Types offered | By default **every type of the project** read from Azure DevOps (User Story, Bug, Task…) can be chosen in the ticket, the default type first. *Only offer some types in the ticket* restricts the list to the default type and the ones you pick |
 | Possible parents | Types under which a work item can be created and that can be linked (`Epic`, `Feature`…) |
 | "Followup only" types | Types (Epic, Feature…) whose completion only adds a private followup and never solves the ticket |
 | Done categories | `Completed` (always) and optionally `Resolved`. Categories come from the process template, so custom states and processes work without configuration |

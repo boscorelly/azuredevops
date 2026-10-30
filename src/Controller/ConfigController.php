@@ -40,7 +40,8 @@ final class ConfigController extends AbstractController
                 'id'           => (int) $project['id'],
                 'name'         => $project['name'],
                 'target'       => $project['organization'] . ' / ' . $project['ado_project'],
-                'type'         => implode(', ', Project::offeredTypes($project)),
+                'type'         => Project::defaultType($project),
+                'more_types'   => max(0, count(Project::offeredTypes($project)) - 1),
                 'auth'         => $project['auth_mode'] ?? 'pat',
                 'is_active'    => (bool) $project['is_active'],
                 'is_restricted' => (bool) $project['is_restricted'],
@@ -222,7 +223,7 @@ final class ConfigController extends AbstractController
             'id' => 0, 'name' => '', 'organization' => '', 'ado_project' => '', 'is_active' => 1, 'is_restricted' => 1,
             'workitem_type' => '', 'parent_types' => 'Epic,Feature', 'followup_only_types' => 'Epic,Feature',
             'done_categories' => 'Completed', 'area_path' => '', 'default_tags' => 'glpi', 'last_error' => null,
-            'auth_mode' => 'pat', 'tenant_id' => '', 'client_id' => '', 'default_fields' => '', 'offered_types' => '',
+            'auth_mode' => 'pat', 'tenant_id' => '', 'client_id' => '', 'default_fields' => '', 'offered_types' => '', 'restrict_types' => 0,
         ];
         $row = ($project ?? []) + $defaults;
         $id  = (int) $row['id'];

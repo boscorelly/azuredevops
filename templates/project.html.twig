@@ -97,17 +97,24 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label" for="ado_offered">{{ __('Other types the technician can choose in the ticket', 'azuredevops') }}</label>
-                {% if types is not empty %}
-                    {% set opts = types %}
-                    {% for t in offered_types %}{% if t not in opts %}{% set opts = opts|merge([t]) %}{% endif %}{% endfor %}
-                    <select id="ado_offered" name="offered_types[]" class="form-select" multiple>
-                        {% for t in opts %}<option value="{{ t }}" {{ t in offered_types ? 'selected' }}>{{ t }}</option>{% endfor %}
-                    </select>
-                {% else %}
-                    <input id="ado_offered" type="text" name="offered_types" class="form-control" value="{{ project.offered_types }}" placeholder="Bug">
-                {% endif %}
-                <div class="form-text">{{ __('For example Bug next to User Story. The technician chooses the type in the ticket, among the default type and these ones (the types come from Azure DevOps). Each type has its own required fields, listed below after "Save and test the connection". Leave empty to offer only the default type.', 'azuredevops') }}</div>
+                <label class="form-check">
+                    <input class="form-check-input" type="checkbox" name="restrict_types" id="ado_restrict" value="1" {{ project.restrict_types ? 'checked' }}>
+                    <span class="form-check-label">{{ __('Only offer some types in the ticket', 'azuredevops') }}</span>
+                </label>
+                <div class="form-text ms-4">{{ __('Unchecked (default): the technician chooses among every type of the project read from Azure DevOps at the last "Save and test the connection", the default type first. Checked: only the default type and the ones chosen below. Each type has its own required fields, listed further down.', 'azuredevops') }}</div>
+                <div id="ado_offered_box" class="mt-2">
+                    <label class="form-label" for="ado_offered">{{ __('Types offered in the ticket', 'azuredevops') }}</label>
+                    {% if types is not empty %}
+                        {% set opts = types %}
+                        {% for t in offered_types %}{% if t not in opts %}{% set opts = opts|merge([t]) %}{% endif %}{% endfor %}
+                        <select id="ado_offered" name="offered_types[]" class="form-select" multiple>
+                            {% for t in opts %}<option value="{{ t }}" {{ t in offered_types ? 'selected' }}>{{ t }}</option>{% endfor %}
+                        </select>
+                    {% else %}
+                        <input id="ado_offered" type="text" name="offered_types" class="form-control" value="{{ project.offered_types }}" placeholder="Bug">
+                    {% endif %}
+                    <div class="form-text">{{ __('In addition to the default type, which is always offered.', 'azuredevops') }}</div>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -251,6 +258,7 @@
             $('#ado_tenant, #ado_client').prop('required', entra);
             $('#ado_secret').prop('required', entra && !hasSecret);
         }
+        $('#ado_restrict').on('change', function () { $('#ado_offered_box').toggleClass('d-none', !this.checked); }).trigger('change');
         $('input[name=auth_mode]').on('change', syncAuth);
         syncAuth();
 

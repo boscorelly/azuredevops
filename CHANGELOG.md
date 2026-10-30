@@ -2,6 +2,12 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.6
+- **Every type of the project is now offered in the ticket by default** (User Story, Bug, Task, Epic...), as read from Azure DevOps at the connection test, the default type first. In 1.0.5 only the default type was offered unless other types were picked in the project: that was not what was asked for.
+- Restricting the list is now an explicit option of the project: *Only offer some types in the ticket*, then the types to offer (the default type is always offered).
+- **The required fields of a type are read when it is first chosen in a ticket** (a message says they are being read), and kept: a type that was not read at the connection test, or added later in Azure DevOps, works without going back to the configuration. An error of Azure DevOps is shown instead of the fields.
+- Update from 1.0.5: one column is added to the projects table. Projects that had other types picked in 1.0.5 now offer every type; tick *Only offer some types in the ticket* to keep a short list.
+
 ## 1.0.5
 - **The type of work item is chosen in the ticket** (User Story, Bug...), next to the project: a *Type* list in the creation form, filled with the types the project offers. If none is chosen, the project's **default type** is created.
 - Per project, *Default type of work item* and **Other types the technician can choose in the ticket** (picked among the types read from Azure DevOps; empty = only the default type, as before).

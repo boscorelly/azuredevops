@@ -697,12 +697,20 @@ msgid "Created when the technician does not choose another type. For example Use
 msgstr "Créé quand le technicien ne choisit pas un autre type. Par exemple User Story (Agile), Product Backlog Item (Scrum) ou Issue (Basic). C'est la clôture des éléments qui ne sont pas d'un type « suivi uniquement » qui résout le ticket."
 
 #: templates/project.html.twig
-msgid "Other types the technician can choose in the ticket"
-msgstr "Autres types que le technicien peut choisir dans le ticket"
+msgid "Only offer some types in the ticket"
+msgstr "Ne proposer que certains types dans le ticket"
 
 #: templates/project.html.twig
-msgid "For example Bug next to User Story. The technician chooses the type in the ticket, among the default type and these ones (the types come from Azure DevOps). Each type has its own required fields, listed below after \"Save and test the connection\". Leave empty to offer only the default type."
-msgstr "Par exemple Bug en plus de User Story. Le technicien choisit le type dans le ticket, parmi le type par défaut et ceux-ci (les types viennent d'Azure DevOps). Chaque type a ses propres champs obligatoires, listés plus bas après « Enregistrer et tester la connexion ». Laisser vide pour ne proposer que le type par défaut."
+msgid "Unchecked (default): the technician chooses among every type of the project read from Azure DevOps at the last \"Save and test the connection\", the default type first. Checked: only the default type and the ones chosen below. Each type has its own required fields, listed further down."
+msgstr "Décoché (par défaut) : le technicien choisit parmi tous les types du projet lus dans Azure DevOps lors du dernier « Enregistrer et tester la connexion », le type par défaut en premier. Coché : seulement le type par défaut et ceux choisis ci-dessous. Chaque type a ses propres champs obligatoires, listés plus bas."
+
+#: templates/project.html.twig
+msgid "Types offered in the ticket"
+msgstr "Types proposés dans le ticket"
+
+#: templates/project.html.twig
+msgid "In addition to the default type, which is always offered."
+msgstr "En plus du type par défaut, toujours proposé."
 
 #: templates/project.html.twig
 msgid "Types that can be the parent of a new work item"
@@ -923,6 +931,14 @@ msgstr "Aucun parent"
 #: templates/ticket_tab.html.twig
 msgid "Search a work item…"
 msgstr "Rechercher un élément de travail…"
+
+#: templates/ticket_tab.html.twig
+msgid "Reading the fields of this type from Azure DevOps…"
+msgstr "Lecture des champs de ce type dans Azure DevOps…"
+
+#: templates/ticket_tab.html.twig
+msgid "The fields of this type could not be read."
+msgstr "Les champs de ce type n'ont pas pu être lus."
 
 #: templates/ticket_tab.html.twig
 msgid "%d other work item is linked to a project you cannot use."

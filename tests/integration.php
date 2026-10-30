@@ -529,9 +529,10 @@ ok('no rule any more: no required field listed', Project::requiredFields(Project
 
 echo "== Type of work item chosen in the ticket (User Story, Bug...)\n";
 $totoInput = fn(array $extra = []) => proj('Toto', $extra + ['token' => '']);
-Project::saveFromInput($totoInput(['offered_types' => ['Bug', 'User Story', 'bug']]), $toto);
-ok('offered types: the default first, no duplicate, the default not repeated', Project::offeredTypes(Project::find($toto)) === ['User Story', 'Bug'] && Project::find($toto)['offered_types'] === 'Bug', json_encode(Project::find($toto)['offered_types']));
-ok('without a default type, the first offered one is the default', Project::defaultType(['workitem_type' => '', 'offered_types' => 'Bug,Task']) === 'Bug' && Project::defaultType(['workitem_type' => 'Issue', 'offered_types' => 'Bug']) === 'Issue');
+ok('by default every type read from Azure DevOps is offered, the default one first', Project::offeredTypes(Project::find($toto)) === ['User Story', 'Epic', 'Feature', 'Bug', 'Task'], json_encode(Project::offeredTypes(Project::find($toto))));
+Project::saveFromInput($totoInput(['restrict_types' => 1, 'offered_types' => ['Bug', 'User Story', 'bug']]), $toto);
+ok('restricted: the default first, no duplicate, the default not repeated, the first spelling kept', Project::offeredTypes(Project::find($toto)) === ['User Story', 'Bug'] && Project::find($toto)['offered_types'] === 'Bug', json_encode(Project::find($toto)['offered_types']));
+ok('without a default type: the first of the restricted list, or none when every type is offered', Project::defaultType(['workitem_type' => '', 'offered_types' => 'Bug,Task', 'restrict_types' => 1]) === 'Bug' && Project::defaultType(['workitem_type' => '', 'offered_types' => 'Bug', 'restrict_types' => 0]) === '' && Project::defaultType(['workitem_type' => 'Issue', 'offered_types' => 'Bug', 'restrict_types' => 1]) === 'Issue');
 ok('resolving the type: none = default, case-insensitive match gives the real name', Project::resolveType(Project::find($toto), null) === 'User Story' && Project::resolveType(Project::find($toto), '') === 'User Story' && Project::resolveType(Project::find($toto), 'bug') === 'Bug');
 try { Project::resolveType(Project::find($toto), 'Task'); ok('type not offered', false); } catch (RuntimeException $e) { ok('a type the project does not offer is refused', str_contains($e->getMessage(), 'Task')); }
 mock('/_mock/rules', ['project' => 'Toto', 'type' => 'Bug', 'fields' => ['Microsoft.VSTS.Common.Severity' => ['name' => 'Severity', 'allowed' => ['1 - Critical', '2 - High', '3 - Medium', '4 - Low']]]]);
@@ -544,7 +545,7 @@ ok('no type chosen: the default type is created', $ru['link']->fields['workitem_
 try { Link::createFromTicket($tty, $toto, 2, 0, '', false, 'none', false, [], 'Bug'); ok('bug without severity', false); }
 catch (AdoException $e) { ok('a Bug without its required field: Azure DevOps message and the hint', str_contains($e->getMessage(), 'TF401320') && str_contains($e->getMessage(), 'Severity') && str_contains($e->getMessage(), 'Default fields'), $e->getMessage()); }
 ok('formFields follow the type: none for the User Story, the Severity for the Bug', ItemBuilder::formFields(Project::find($toto), $tty, 'User Story') === [] && array_column(ItemBuilder::formFields(Project::find($toto), $tty, 'Bug'), 'ref') === ['Microsoft.VSTS.Common.Severity']);
-Project::saveFromInput($totoInput(['offered_types' => 'Bug', 'default_fields' => "# every type\nCustom.All = x\nBug: Microsoft.VSTS.Common.Severity = 3 - Medium"]), $toto);
+Project::saveFromInput($totoInput(['restrict_types' => 1, 'offered_types' => 'Bug', 'default_fields' => "# every type\nCustom.All = x\nBug: Microsoft.VSTS.Common.Severity = 3 - Medium"]), $toto);
 ok('default fields: lines of one type are stored with their type', Project::find($toto)['default_fields'] === "Custom.All = x\nBug: Microsoft.VSTS.Common.Severity = 3 - Medium", (string) Project::find($toto)['default_fields']);
 ok('defaults of a type = the common lines + its own', Project::defaultFields(Project::find($toto), 'Bug') === ['Custom.All' => 'x', 'Microsoft.VSTS.Common.Severity' => '3 - Medium'] && Project::defaultFields(Project::find($toto), 'User Story') === ['Custom.All' => 'x']);
 Project::testAndCache($toto);
@@ -563,9 +564,27 @@ try { Link::createFromTicket($tty, $toto, 2, 0, '', false, 'none', false); ok('s
 $n_types = $creates();
 try { Link::createFromTicket(newTicket('Types 5'), $toto, 2, 0, '', false, 'none', false, [], 'Task'); ok('type not offered', false); } catch (RuntimeException $e) { ok('a type the project does not offer cannot be forced by a forged request; nothing sent', $creates() === $n_types); }
 mock('/_mock/rules', ['project' => 'Toto', 'type' => 'Bug', 'fields' => []]);
-Project::saveFromInput($totoInput(['offered_types' => '', 'default_fields' => '']), $toto);
+Project::saveFromInput($totoInput(['restrict_types' => 1, 'offered_types' => '', 'default_fields' => '']), $toto);
 Project::testAndCache($toto);
-ok('back to a single type: only the default one is offered', Project::offeredTypes(Project::find($toto)) === ['User Story']);
+ok('restricted to the default type only (an explicit choice, even without other types)', Project::offeredTypes(Project::find($toto)) === ['User Story']);
+Project::saveFromInput($totoInput(['offered_types' => '', 'default_fields' => '']), $toto);
+ok('not restricted again: every type is offered', count(Project::offeredTypes(Project::find($toto))) === 5);
+
+echo "== Required fields of a type read on demand\n";
+mock('/_mock/rules', ['project' => 'Toto', 'type' => 'Task', 'fields' => ['Custom.Effort' => ['name' => 'Effort', 'allowed' => ['S', 'M']]]]);
+Project::testAndCache($toto);
+ok('the test reads the types offered, the ones that have no required field too', Project::requiredFieldsRead(Project::find($toto), 'Bug') && Project::requiredFieldsRead(Project::find($toto), 'Epic') && array_column(Project::requiredFields(Project::find($toto), 'Task'), 'ref') === ['Custom.Effort']);
+$cacheRow = Project::cache(Project::find($toto)); unset($cacheRow['required']['Task']);
+$DB->update(Project::getTable(), ['types_cache' => json_encode($cacheRow)], ['id' => $toto]);
+ok('a type whose fields were never read is known as such (not as "no required field")', !Project::requiredFieldsRead(Project::find($toto), 'Task') && Project::requiredFields(Project::find($toto), 'Task') === []);
+$reads = fn() => count(requests('GET /acme/Toto/_apis/wit/workitemtypes/Task/fields'));
+$r0 = $reads();
+Project::ensureRequiredFields($toto, 'Task');
+ok('read from Azure DevOps when asked, and kept with the others', Project::requiredFieldsRead(Project::find($toto), 'Task') && array_column(Project::requiredFields(Project::find($toto), 'Task'), 'ref') === ['Custom.Effort'] && $reads() === $r0 + 1 && Project::requiredFieldsRead(Project::find($toto), 'Bug'));
+Project::ensureRequiredFields($toto, 'Task');
+ok('not read again once known', $reads() === $r0 + 1);
+mock('/_mock/rules', ['project' => 'Toto', 'type' => 'Task', 'fields' => []]);
+Project::testAndCache($toto);
 
 echo "== Microsoft Entra application instead of a personal token\n";
 $signins = fn() => count(mock('/_mock/dump')['token_requests']);

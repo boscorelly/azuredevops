@@ -224,7 +224,9 @@ final class Project
             'is_active'           => !empty($input['is_active']) ? 1 : 0,
             'is_restricted'       => !empty($input['is_restricted']) ? 1 : 0,
             'workitem_type'       => mb_substr($str('workitem_type'), 0, 128),
-            // Other types the technician can choose in the ticket (the default type is always offered)
+            // 1 = only the default type and the ones below are offered in the ticket; 0 = every type of the project
+            'restrict_types'      => !empty($input['restrict_types']) ? 1 : 0,
+            // Types the technician can choose in the ticket when restricted (the default type is always offered)
             'offered_types'       => mb_substr(implode(',', array_filter(
                 self::csv(implode(',', array_map('strval', (array) ($input['offered_types'] ?? explode(',', $str('offered_types')))))),
                 static fn(string $t): bool => strcasecmp($t, $str('workitem_type')) !== 0
@@ -329,18 +331,22 @@ final class Project
     // ------------------------------------------------------ types to create
 
     /**
-     * The type created when the technician does not choose one: the project's default type, else the first of the
-     * types offered in the ticket.
+     * The type created when the technician does not choose one: the project's default type, else (restricted list) the
+     * first type of the list.
      */
     public static function defaultType(array $project): string
     {
         $type = trim((string) ($project['workitem_type'] ?? ''));
+        if ($type !== '' || empty($project['restrict_types'])) {
+            return $type;
+        }
 
-        return $type !== '' ? $type : (self::csv($project['offered_types'] ?? '')[0] ?? '');
+        return self::csv($project['offered_types'] ?? '')[0] ?? '';
     }
 
     /**
-     * The types a technician can choose in the ticket: the default type first, then the others offered by the project.
+     * The types a technician can choose in the ticket, the default one first. By default, every type read from Azure
+     * DevOps (at the last connection test); when the project restricts them, the default type and the chosen ones.
      *
      * @return string[]
      */
@@ -351,7 +357,10 @@ final class Project
         if ($default !== '') {
             $types[strtolower($default)] = $default;
         }
-        foreach (self::csv($project['offered_types'] ?? '') as $type) {
+        $others = !empty($project['restrict_types'])
+            ? self::csv($project['offered_types'] ?? '')
+            : array_map('strval', array_keys(self::cache($project)['types']));
+        foreach ($others as $type) {
             $types[strtolower($type)] ??= $type;
         }
 
@@ -475,7 +484,62 @@ final class Project
     }
 
     /**
-     * Required fields of every type offered by the project (those read at the last test).
+     * Keep what the form needs of the fields of a type: the required ones, outside the System family.
+     *
+     * @param array<int, array{ref: string, name: string, required: bool, default: ?string, allowed: string[]}> $fields
+     *
+     * @return array<int, array{ref: string, name: string, default: ?string, allowed: string[]}>
+     */
+    private static function requiredFromFields(array $fields): array
+    {
+        $required = [];
+        foreach ($fields as $field) {
+            if ($field['required'] && !str_starts_with(strtolower($field['ref']), 'system.')) {
+                $required[] = ['ref' => $field['ref'], 'name' => $field['name'], 'default' => $field['default'], 'allowed' => array_slice($field['allowed'], 0, 200)];
+            }
+        }
+
+        return $required;
+    }
+
+    /**
+     * Were the required fields of this type read from Azure DevOps (even if it has none)?
+     */
+    public static function requiredFieldsRead(array $project, string $type): bool
+    {
+        return array_key_exists($type, self::cache($project)['required'] ?? []);
+    }
+
+    /**
+     * Read the required fields of a type that was not read yet (a type chosen in a ticket for the first time), and keep
+     * them with the others.
+     *
+     * @throws AdoException
+     */
+    public static function ensureRequiredFields(int $id, string $type): void
+    {
+        /** @var \DBmysql $DB */
+        global $DB;
+
+        $project = self::find($id);
+        if ($project === null || self::requiredFieldsRead($project, $type)) {
+            return;
+        }
+
+        $required = self::requiredFromFields(self::client($project)->getTypeFields($type));
+
+        // Read again just before writing: another request may have added other types meanwhile.
+        $project = self::find($id);
+        if ($project === null) {
+            return;
+        }
+        $cache = self::cache($project);
+        $cache['required'][$type] = $required;
+        $DB->update(self::getTable(), ['types_cache' => json_encode($cache, JSON_UNESCAPED_UNICODE)], ['id' => $id]);
+    }
+
+    /**
+     * Required fields of every type offered by the project that was read (at the last test, or when first chosen).
      *
      * @return array<string, array<int, array{ref: string, name: string, default: ?string, allowed: string[], covered: bool}>>
      */
@@ -483,7 +547,9 @@ final class Project
     {
         $all = [];
         foreach (self::offeredTypes($project) as $type) {
-            $all[$type] = self::requiredFields($project, $type);
+            if (self::requiredFieldsRead($project, $type)) {
+                $all[$type] = self::requiredFields($project, $type);
+            }
         }
 
         return $all;
@@ -536,11 +602,7 @@ final class Project
                 continue;
             }
             try {
-                foreach ($client->getTypeFields($type) as $field) {
-                    if ($field['required'] && !str_starts_with(strtolower($field['ref']), 'system.')) {
-                        $cache['required'][$wanted][] = ['ref' => $field['ref'], 'name' => $field['name'], 'default' => $field['default'], 'allowed' => array_slice($field['allowed'], 0, 200)];
-                    }
-                }
+                $cache['required'][$wanted] = self::requiredFromFields($client->getTypeFields($type));
             } catch (AdoException $e) {
                 Toolbox::logInFile('azuredevops', sprintf("Fields of the type %s not read (project %d): %s\n", $type, $id, $e->getMessage()));
             }

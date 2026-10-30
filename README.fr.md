@@ -23,7 +23,7 @@ Testé sur **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) contre un mock de l'API RES
 | Authentification | **Jeton d'accès personnel (PAT)** ou **application Microsoft Entra** (voir ci-dessous) |
 | Jeton d'accès (PAT) | Un jeton d'accès personnel avec les portées **Work Items (Read & write)** et **Project and Team (Read)**, dont le propriétaire peut travailler sur le projet. Stocké **chiffré** (clé de GLPI), jamais ré-affiché, utilisé **uniquement pour ce projet** |
 | Type par défaut | `User Story` (Agile), `Product Backlog Item` (Scrum), `Issue` (Basic)… à choisir parmi les types lus par *Enregistrer et tester la connexion* : créé quand le technicien n'en choisit pas un autre |
-| Autres types proposés | Types que le technicien peut choisir dans le ticket (par exemple `Bug`), à prendre parmi ceux du projet ; vide = seulement le type par défaut |
+| Types proposés | Par défaut **tous les types du projet** lus dans Azure DevOps (User Story, Bug, Task…) peuvent être choisis dans le ticket, le type par défaut en premier. *Ne proposer que certains types dans le ticket* restreint la liste au type par défaut et à ceux que vous choisissez |
 | Parents possibles | Types sous lesquels on peut créer un élément et que l'on peut lier (`Epic`, `Feature`…) |
 | Types « suivi uniquement » | Types (Epic, Feature…) dont la fin ajoute seulement un suivi privé et ne résout jamais le ticket |
 | Catégories « terminé » | `Completed` (toujours) et éventuellement `Resolved`. Les catégories viennent du modèle de processus : états et processus personnalisés fonctionnent sans configuration |

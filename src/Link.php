@@ -204,7 +204,8 @@ class Link extends CommonDBTM
             $types  = Project::offeredTypes($project);
             $fields = [];
             foreach ($types as $type) {
-                $fields[$type] = ItemBuilder::formFields($project, $ticket, $type);
+                // null = not read from Azure DevOps yet: the form asks for them when the type is chosen
+                $fields[$type] = Project::requiredFieldsRead($project, $type) ? ItemBuilder::formFields($project, $ticket, $type) : null;
             }
             $config[(int) $project['id']] = ['default' => Project::defaultType($project), 'types' => $types, 'fields' => $fields];
             $projects[] = [

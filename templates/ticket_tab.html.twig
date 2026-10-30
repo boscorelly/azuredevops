@@ -200,7 +200,23 @@
                 var $type = $('#ado_wtype_{{ rand }}');
 
                 function renderFields() {
-                    var project = config[$cp.val()] || {}, list = ((project.fields || {})[$type.val()]) || [], $box = $('#ado_fields_{{ rand }}').empty();
+                    var pid = $cp.val(), type = $type.val(), project = config[pid] || {}, list = (project.fields || {})[type], $box = $('#ado_fields_{{ rand }}').empty();
+                    if (list === null || list === undefined && type) {
+                        // The fields of this type were not read from Azure DevOps yet: ask for them now
+                        $('#ado_fields_title_{{ rand }}').removeClass('d-none');
+                        $box.append($('<div class="col-12 text-muted small"></div>').text({{ __('Reading the fields of this type from Azure DevOps…', 'azuredevops')|json_encode|raw }}));
+                        $.getJSON(base + '/Projects/' + pid + '/TypeFields', {type: type, ticket: {{ ticket_id }}}).done(function (data) {
+                            project.fields = project.fields || {};
+                            project.fields[type] = data.fields || [];
+                            if ($cp.val() === pid && $type.val() === type) { renderFields(); }
+                        }).fail(function (xhr) {
+                            if ($cp.val() !== pid || $type.val() !== type) { return; }
+                            var message = (xhr.responseJSON && xhr.responseJSON.error) || {{ __('The fields of this type could not be read.', 'azuredevops')|json_encode|raw }};
+                            $box.empty().append($('<div class="col-12 text-danger small"></div>').text('\u26A0 ' + message));
+                        });
+                        return;
+                    }
+                    list = list || [];
                     $.each(list, function (i, f) {
                         var id = 'ado_f_{{ rand }}_' + i, name = 'fields[' + f.ref + ']', $input;
                         if (f.allowed && f.allowed.length) {

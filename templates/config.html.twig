@@ -32,7 +32,7 @@
                     <tr>
                         <td><a href="{{ project_url }}/{{ project.id }}">{{ project.name }}</a></td>
                         <td class="text-muted">{{ project.target }}</td>
-                        <td>{{ project.type ?: '—' }}</td>
+                        <td>{{ project.type ?: '—' }}{% if project.more_types > 0 %} <span class="text-muted small">+{{ project.more_types }}</span>{% endif %}</td>
                         <td>{% if project.auth == 'entra' %}<span class="badge bg-purple-lt">{{ __('Entra application', 'azuredevops') }}</span>{% else %}<span class="badge bg-secondary-lt">{{ __('Personal token', 'azuredevops') }}</span>{% endif %}</td>
                         <td>
                             {% if not project.is_restricted %}

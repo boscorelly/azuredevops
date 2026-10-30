@@ -6,6 +6,7 @@ use Glpi\Controller\AbstractController;
 use Glpi\Exception\Http\AccessDeniedHttpException;
 use Glpi\Exception\Http\NotFoundHttpException;
 use GlpiPlugin\Azuredevops\AdoException;
+use GlpiPlugin\Azuredevops\ItemBuilder;
 use GlpiPlugin\Azuredevops\Link;
 use GlpiPlugin\Azuredevops\Project;
 use GlpiPlugin\Azuredevops\ProjectAccess;
@@ -155,6 +156,39 @@ final class WorkItemController extends AbstractController
         }
 
         return new JsonResponse(['results' => $results, 'pagination' => ['more' => false]]);
+    }
+
+    /**
+     * The fields the process requires for a type, for the creation form. The first time a type is chosen in a ticket
+     * they are read from Azure DevOps (and kept), so that new types work without going back to the configuration.
+     */
+    #[Route('/Projects/{id}/TypeFields', name: 'azuredevops_type_fields', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function typeFields(Request $request, int $id): Response
+    {
+        if (!Link::canCreate()) {
+            throw new AccessDeniedHttpException();
+        }
+        $project = Project::find($id);
+        if ($project === null || !ProjectAccess::canUse($project, (int) Session::getLoginUserID())) {
+            throw new AccessDeniedHttpException();
+        }
+        $ticket = $this->getReadableTicket((int) $request->query->get('ticket', 0));
+        try {
+            $type = Project::resolveType($project, (string) $request->query->get('type', ''));   // only a type the project offers
+        } catch (\RuntimeException) {
+            throw new AccessDeniedHttpException();
+        }
+
+        try {
+            Project::ensureRequiredFields($id, $type);
+            $project = Project::find($id) ?? $project;
+        } catch (AdoException $e) {
+            Toolbox::logInFile('azuredevops', sprintf("Fields of the type %s not read (project %d): %s\n", $type, $id, $e->getMessage()));
+
+            return new JsonResponse(['fields' => [], 'error' => $e->getMessage()], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse(['fields' => ItemBuilder::formFields($project, $ticket, $type)]);
     }
 
     // ------------------------------------------------------------------ helpers

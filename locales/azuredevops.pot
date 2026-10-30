@@ -697,11 +697,19 @@ msgid "Created when the technician does not choose another type. For example Use
 msgstr ""
 
 #: templates/project.html.twig
-msgid "Other types the technician can choose in the ticket"
+msgid "Only offer some types in the ticket"
 msgstr ""
 
 #: templates/project.html.twig
-msgid "For example Bug next to User Story. The technician chooses the type in the ticket, among the default type and these ones (the types come from Azure DevOps). Each type has its own required fields, listed below after \"Save and test the connection\". Leave empty to offer only the default type."
+msgid "Unchecked (default): the technician chooses among every type of the project read from Azure DevOps at the last \"Save and test the connection\", the default type first. Checked: only the default type and the ones chosen below. Each type has its own required fields, listed further down."
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Types offered in the ticket"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "In addition to the default type, which is always offered."
 msgstr ""
 
 #: templates/project.html.twig
@@ -922,6 +930,14 @@ msgstr ""
 
 #: templates/ticket_tab.html.twig
 msgid "Search a work item…"
+msgstr ""
+
+#: templates/ticket_tab.html.twig
+msgid "Reading the fields of this type from Azure DevOps…"
+msgstr ""
+
+#: templates/ticket_tab.html.twig
+msgid "The fields of this type could not be read."
 msgstr ""
 
 #: templates/ticket_tab.html.twig

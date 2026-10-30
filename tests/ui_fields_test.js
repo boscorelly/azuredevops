@@ -7,15 +7,14 @@ const options = [...html.matchAll(/<option value="(\d+)" data-parents="(\d)">([^
 const byName = Object.fromEntries(options.map(o => [o.name, o.id]));
 const data = {};
 data[byName['Tata']] = {
-  'default': 'Issue', types: ['Issue', 'Bug'],
+  'default': 'Issue', types: ['Issue', 'Bug', 'Task'],
   fields: {
     'Issue': [
       {ref: 'Microsoft.VSTS.Common.Priority', name: 'Priorité', allowed: ['1','2','3','4'], value: '2'},
       {ref: 'Custom.Note', name: '<img src=x onerror=alert(1)>Note', allowed: [], value: 'abc "q"'},
     ],
-    'Bug': [
-      {ref: 'Microsoft.VSTS.Common.Severity', name: 'Severity', allowed: ['1 - Critical','2 - High'], value: '2 - High'},
-    ],
+    'Bug': null,    // not read from Azure DevOps yet: the form asks for them when the type is chosen
+    'Task': null,
   },
 };
 data[byName['Toto']] = {'default': 'User Story', types: ['User Story'], fields: {'User Story': []}};
@@ -24,6 +23,12 @@ const dom = new JSDOM('<body>' + page + '</body>', {runScripts: 'outside-only', 
 const w = dom.window;
 w.eval(fs.readFileSync(require.resolve('jquery'), 'utf8'));
 w.$.fn.select2 = function () { return this; };      // select2 is GLPI's, not under test
+let pending = null;                                   // the request for the fields of a type, answered by the test
+w.$.getJSON = function (url, params) {
+  const p = pending = {url, params, doneFn: null, failFn: null};
+  const api = {done(fn) { p.doneFn = fn; return api; }, fail(fn) { p.failFn = fn; return api; }};
+  return api;
+};
 const scripts = [...dom.window.document.querySelectorAll('script')].map(s => s.textContent);
 const mine = scripts.find(s => s.includes('renderFields'));
 w.eval(mine);
@@ -47,12 +52,25 @@ t('a field without list is a text box with its value (quotes kept)', note.length
 t('the title of the section is shown', !title.hasClass('d-none'));
 t('a field name is displayed as text, never as HTML (no injection)', box.find('img').length === 0 && box.find('label').eq(1).text().includes('<img'), box.html());
 const typeSel = $('select[id^=ado_wtype_]');
-t('Tata: the types of the project are offered, the default one selected', typeSel.find('option').map((i, o) => o.value).get().join() === 'Issue,Bug' && typeSel.val() === 'Issue', typeSel.html());
+t('Tata: the types of the project are offered, the default one selected', typeSel.find('option').map((i, o) => o.value).get().join() === 'Issue,Bug,Task' && typeSel.val() === 'Issue', typeSel.html());
+pending = null;
 typeSel.val('Bug').trigger('change');
-t('choosing another type shows the fields of that type', box.find('select[name="fields[Microsoft.VSTS.Common.Severity]"]').length === 1 && box.find('select[name="fields[Microsoft.VSTS.Common.Priority]"]').length === 0 && box.find('input[type=text]').length === 0, box.html());
-t('with the preselected value of that type', box.find('select').val() === '2 - High');
+t('a type whose fields were not read yet: they are asked for (project, type and ticket in the request)', pending !== null && pending.url.endsWith('/Projects/' + byName['Tata'] + '/TypeFields') && pending.params.type === 'Bug' && Number(pending.params.ticket) > 0, JSON.stringify(pending));
+t('a message says they are being read, and the fields of the previous type are gone', box.text().length > 0 && box.find('select, input').length === 0, box.html());
+pending.doneFn({fields: [{ref: 'Microsoft.VSTS.Common.Severity', name: 'Severity', allowed: ['1 - Critical', '2 - High'], value: '2 - High'}]});
+t('the answer shows the fields of that type, with the preselected value', box.find('select[name="fields[Microsoft.VSTS.Common.Severity]"]').length === 1 && box.find('select').val() === '2 - High' && box.find('select[name="fields[Microsoft.VSTS.Common.Priority]"]').length === 0, box.html());
 typeSel.val('Issue').trigger('change');
 t('back to the first type: its fields are back', box.find('select[name="fields[Microsoft.VSTS.Common.Priority]"]').length === 1);
+pending = null;
+typeSel.val('Bug').trigger('change');
+t('the fields already read are kept: no second request', pending === null && box.find('select[name="fields[Microsoft.VSTS.Common.Severity]"]').length === 1);
+typeSel.val('Task').trigger('change');
+pending.failFn({responseJSON: {error: 'Azure DevOps said <b>boom</b>'}});
+t('an error is shown as text (never as HTML), and nothing is offered', box.text().includes('boom') && box.text().includes('<b>') && box.find('b').length === 0 && box.find('select, input').length === 0, box.html());
+pending = null;
+typeSel.val('Task').trigger('change');
+t('choosing it again asks again (the failed answer was not kept)', pending !== null);
+typeSel.val('Issue').trigger('change');
 pick(byName['Toto']);
 t('switching project resets the type list to that project', typeSel.find('option').map((i, o) => o.value).get().join() === 'User Story' && typeSel.val() === 'User Story');
 t('switching to a project without required field clears them', box.children().length === 0 && title.hasClass('d-none'));
