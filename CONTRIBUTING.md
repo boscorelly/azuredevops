@@ -13,12 +13,13 @@ Give the GLPI version, the plugin version, the process template of the Azure Dev
 - Do not rename `Project` into a `CommonDBTM` subclass: its helper names clash with `CommonDBTM` methods.
 
 ## What the mock cannot prove
-The tests run against `tests/mock_ado.py`, written from the documented behaviour of the API, not against the real service. When trying the plugin on a sandbox project, check in particular:
+The tests run against `tests/mock_ado.py`, written from the documented behaviour of the Azure DevOps API and of the Microsoft Entra sign-in, not against the real services. When trying the plugin on a sandbox project, check in particular:
 - the states of a work item type are read, with their category (the list of types, or the `/states` endpoint of the type, depending on the API version);
 - the batch read (`workitemsbatch` with `errorPolicy=Omit`) leaves out deleted or unreadable work items;
 - a refused or expired token is reported as an authentication error (Azure DevOps may answer `203` with its sign-in page rather than `401`);
 - who completed a work item and when (the "closed by/date" fields do not exist in every process; the plugin falls back on the last change);
-- parent creation (`System.LinkTypes.Hierarchy-Reverse`) and attachment upload.
+- parent creation (`System.LinkTypes.Hierarchy-Reverse`) and attachment upload;
+- for an Entra application: the sign-in (`client_credentials` on `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, scope `499b84ac-1321-427f-aa17-267ca6975798/.default`), that the application must be added as a user of the organization (otherwise Azure DevOps answers 401 although Entra gave a token), and the wording of the Entra errors (`AADSTS7000215` wrong secret, `AADSTS7000222` expired secret).
 
 ## Releasing (maintainers)
 Bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update `CHANGELOG.md`, then publish a release whose tag equals the version. The release workflow builds and attaches `glpi-azuredevops-<version>.tar.bz2` and `.zip`.

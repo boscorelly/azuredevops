@@ -100,16 +100,42 @@ final class Project
 
     // -------------------------------------------------------------------- token
 
+    /** The personal access token (PAT mode). */
     public static function token(array $project): string
     {
-        $stored = (string) ($project['token'] ?? '');
-        if ($stored === '') {
-            return '';
+        return self::decrypt((string) ($project['token'] ?? ''));
+    }
+
+    /**
+     * How the project signs in: its personal access token, or its Microsoft Entra application (the access token
+     * obtained from Entra is kept, encrypted, in the project while it is valid).
+     */
+    public static function auth(array $project): AdoAuth
+    {
+        if (($project['auth_mode'] ?? AdoAuth::MODE_PAT) !== AdoAuth::MODE_ENTRA) {
+            return AdoAuth::pat(self::token($project));
         }
 
-        // decrypt() returns an empty string when the value cannot be decrypted
-        // (e.g. glpicrypt.key changed): the administrator then has to enter the token again.
-        return (new GLPIKey())->decrypt($stored);
+        $id      = (int) $project['id'];
+        $expires = (int) ($project['access_token_expires'] ?? 0);
+        $cached  = $expires > time() ? self::decrypt((string) ($project['access_token'] ?? '')) : '';
+
+        return AdoAuth::entra(
+            (string) ($project['tenant_id'] ?? ''),
+            (string) ($project['client_id'] ?? ''),
+            self::decrypt((string) ($project['client_secret'] ?? '')),
+            Settings::entraAuthority(),
+            $cached,
+            $cached !== '' ? $expires : 0,
+            static function (string $token, int $expires_at) use ($id): void {
+                /** @var \DBmysql $DB */
+                global $DB;
+                $DB->update(self::getTable(), [
+                    'access_token'         => (new GLPIKey())->encrypt($token),
+                    'access_token_expires' => $expires_at,
+                ], ['id' => $id]);
+            }
+        );
     }
 
     public static function client(array $project): AdoClient
@@ -118,8 +144,15 @@ final class Project
             Settings::baseUrl(),
             (string) $project['organization'],
             (string) $project['ado_project'],
-            self::token($project)
+            self::auth($project)
         );
+    }
+
+    private static function decrypt(string $stored): string
+    {
+        // decrypt() returns an empty string when the value cannot be decrypted
+        // (e.g. glpicrypt.key changed): the administrator then has to enter the secret again.
+        return $stored !== '' ? (new GLPIKey())->decrypt($stored) : '';
     }
 
     // ------------------------------------------------------------------- saving
@@ -189,13 +222,38 @@ final class Project
             'date_mod'            => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
         ];
 
-        $token = $str('token');
+        // Credentials: a personal access token, or a Microsoft Entra application. Both can be stored; the mode
+        // chosen decides which one is used. Secrets are encrypted; an empty field keeps the stored value.
+        $mode = $str('auth_mode') === AdoAuth::MODE_ENTRA ? AdoAuth::MODE_ENTRA : AdoAuth::MODE_PAT;
+        $values['auth_mode'] = $mode;
+        $values['tenant_id'] = $str('tenant_id') !== '' ? mb_substr($str('tenant_id'), 0, 255) : null;
+        $values['client_id'] = $str('client_id') !== '' ? mb_substr($str('client_id'), 0, 255) : null;
+
+        $token  = $str('token');
+        $secret = $str('client_secret');
         if ($token !== '') {
             $values['token'] = (new GLPIKey())->encrypt($token);
-            // New credentials: the previous error (expired token...) no longer applies.
+        }
+        if ($secret !== '') {
+            $values['client_secret'] = (new GLPIKey())->encrypt($secret);
+        }
+        // New credentials: the previous error (expired token...) no longer applies.
+        if ($token !== '' || $secret !== '') {
             $values['last_error'] = null;
-        } elseif ($current === null) {
+        }
+        // The access token obtained from Entra belongs to the application credentials: forget it when they change.
+        if ($current !== null && ($secret !== '' || (string) $values['tenant_id'] !== (string) $current['tenant_id'] || (string) $values['client_id'] !== (string) $current['client_id'])) {
+            $values['access_token']         = null;
+            $values['access_token_expires'] = 0;
+        }
+
+        $has_token  = $token !== '' || ($current !== null && (string) $current['token'] !== '');
+        $has_secret = $secret !== '' || ($current !== null && (string) $current['client_secret'] !== '');
+        if ($mode === AdoAuth::MODE_PAT && !$has_token) {
             throw new RuntimeException(__('The access token is required.', 'azuredevops'));
+        }
+        if ($mode === AdoAuth::MODE_ENTRA && ($values['tenant_id'] === null || $values['client_id'] === null || !$has_secret)) {
+            throw new RuntimeException(__('The tenant ID, the application (client) ID and the client secret are required.', 'azuredevops'));
         }
 
         // The cached types belong to the organization/project: forget them when those change.

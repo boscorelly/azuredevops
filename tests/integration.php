@@ -6,6 +6,7 @@
 require __DIR__ . '/bootstrap.php';
 // The assertions on messages are written in English: run_all.sh sets the instance language to en_GB for this script.
 
+use GlpiPlugin\Azuredevops\AdoAuth;
 use GlpiPlugin\Azuredevops\AdoClient;
 use GlpiPlugin\Azuredevops\AdoException;
 use GlpiPlugin\Azuredevops\Link;
@@ -74,10 +75,12 @@ $DB->doQuery("DELETE FROM glpi_groups WHERE name LIKE 'ado\\_%'");
 $DB->doQuery("DELETE FROM glpi_users WHERE name LIKE 'ado\\_%'");
 login();
 Config::setConfigurationValues('core', ['use_notifications' => 1, 'notifications_mailing' => 1]);
-Settings::save(['api_base_url' => 'http://127.0.0.1:8098/', 'close_followup_private' => '1'] + Settings::DEFAULTS);
+Settings::save(['api_base_url' => 'http://127.0.0.1:8098/', 'entra_authority' => 'http://127.0.0.1:8098/_entra/', 'close_followup_private' => '1'] + Settings::DEFAULTS);
 
 echo "== Settings\n";
 ok('base URL normalised (no trailing slash)', Settings::baseUrl() === 'http://127.0.0.1:8098');
+ok('Entra sign-in address normalised, with a public default', Settings::entraAuthority() === 'http://127.0.0.1:8098/_entra' && Settings::DEFAULTS['entra_authority'] === 'https://login.microsoftonline.com');
+ok('credentials: PAT header and unconfigured Entra', AdoAuth::pat('x')->header() === 'Basic ' . base64_encode(':x') && !AdoAuth::entra('', 'a', 'b')->isConfigured());
 ok('organization normalised', Project::normalizeOrganization('https://dev.azure.com/acme/') === 'acme'
     && Project::normalizeOrganization('dev.azure.com/acme/Toto/_boards') === 'acme'
     && Project::normalizeOrganization('acme') === 'acme'
@@ -470,6 +473,93 @@ ok('group 2 sees only the Tata link', array_column(Link::visibleLinks($tv->getID
 ok('both groups see both', count(Link::visibleLinks($tv->getID(), $uc)) === 2);
 ok('nobody-in-a-group sees none', Link::visibleLinks($tv->getID(), $ud) === []);
 ok('refresh / unlink are reserved to the allowed projects', Link::canUseProjectOf($vt->fields, $ua) && !Link::canUseProjectOf($vt->fields, $ub) && Link::canUseProjectOf($vu->fields, $ub));
+
+echo "== Microsoft Entra application instead of a personal token\n";
+$signins = fn() => count(mock('/_mock/dump')['token_requests']);
+$authCount = fn(string $type) => count(array_filter(requests(), fn($r) => $r['auth_type'] === $type));
+$entraInput = fn(array $extra = []) => proj('TataEntra', $extra + ['auth_mode' => 'entra', 'ado_project' => 'Tata', 'token' => '', 'tenant_id' => 'tenant-1', 'client_id' => 'app-tata', 'client_secret' => 'secret-tata', 'workitem_type' => 'Issue', 'parent_types' => 'Epic', 'followup_only_types' => 'Epic']);
+mock('/_mock/entra', ['expires_in' => 3600, 'secret_expired' => false, 'org_access' => true]);
+try { Project::saveFromInput($entraInput(['client_secret' => '', 'name' => 'E-nosecret'])); ok('secret required', false); } catch (RuntimeException $e) { ok('Entra: the tenant, application ID and secret are required on creation', str_contains($e->getMessage(), 'client secret')); }
+try { Project::saveFromInput($entraInput(['tenant_id' => '', 'name' => 'E-notenant'])); ok('tenant required', false); } catch (RuntimeException $e) { ok('Entra: the tenant is required', true); }
+$ent = Project::saveFromInput($entraInput());
+ProjectAccess::set($ent, [], [$g2]);
+$raw = $DB->request(['FROM' => Project::getTable(), 'WHERE' => ['id' => $ent]])->current();
+ok('no personal token needed; the client secret is stored encrypted', ($raw['token'] ?? '') === '' && $raw['client_secret'] !== '' && $raw['client_secret'] !== 'secret-tata' && !str_contains($raw['client_secret'], 'secret-tata') && $raw['auth_mode'] === 'entra');
+$basic0 = $authCount('Basic'); $bearer0 = $authCount('Bearer'); $s0 = $signins();
+$res = Project::testAndCache($ent);
+ok('test connection: the application signs in and reads the project', $res['project'] === 'Tata' && $res['user'] === 'App Tata', json_encode($res));
+$tr = mock('/_mock/dump')['token_requests']; $last = end($tr);
+ok('one sign-in with the client credentials, the tenant and the Azure DevOps scope', $signins() === $s0 + 1 && $last['form']['grant_type'] === 'client_credentials' && $last['form']['client_id'] === 'app-tata' && $last['form']['scope'] === '499b84ac-1321-427f-aa17-267ca6975798/.default' && $last['tenant'] === 'tenant-1', json_encode($last));
+ok('API calls carry the Bearer token, not a Basic one', $authCount('Bearer') > $bearer0 && $authCount('Basic') === $basic0);
+$row = Project::find($ent);
+ok('the access token is kept, encrypted, with its expiry', $row['access_token'] !== null && !str_contains($row['access_token'], 'eyJ') && (int) $row['access_token_expires'] > time() + 3000);
+$s1 = $signins();
+$items = Project::client(Project::find($ent))->getWorkItems([600]);
+ok('a valid token is reused by the next request (no new sign-in)', isset($items[600]) && $signins() === $s1);
+$DB->update(Project::getTable(), ['access_token_expires' => time() + 100], ['id' => $ent]);
+Project::client(Project::find($ent))->getWorkItems([600]);
+ok('a token about to expire is renewed', $signins() === $s1 + 1);
+mock('/_mock/revoke_bearers');
+$items = Project::client(Project::find($ent))->getWorkItems([600]);
+ok('token revoked before its expiry: one new sign-in, the request is retried and succeeds', isset($items[600]) && $signins() === $s1 + 2);
+
+Project::saveFromInput($entraInput(['client_secret' => 'wrong-secret']), $ent);
+ok('new secret: the kept access token is forgotten', Project::find($ent)['access_token'] === null && (int) Project::find($ent)['access_token_expires'] === 0);
+try { Project::testAndCache($ent); ok('wrong secret', false); }
+catch (AdoException $e) { ok('wrong secret -> AUTH, only the reason of Entra (one line), the secret is not leaked', $e->getKind() === AdoException::AUTH && str_contains($e->getMessage(), 'AADSTS7000215') && !str_contains($e->getMessage(), 'wrong-secret') && !str_contains($e->getMessage(), 'Trace ID') && !str_contains($e->getMessage(), "\n"), $e->getMessage()); }
+ok('error recorded on the project', str_contains((string) Project::find($ent)['last_error'], 'AADSTS7000215'));
+Project::saveFromInput($entraInput(), $ent);
+ok('re-entering the secret clears the error', Project::find($ent)['last_error'] === null);
+mock('/_mock/entra', ['secret_expired' => true]);
+try { Project::testAndCache($ent); ok('expired secret', false); } catch (AdoException $e) { ok('expired secret -> AUTH with the reason of Entra', $e->getKind() === AdoException::AUTH && str_contains($e->getMessage(), 'AADSTS7000222')); }
+mock('/_mock/entra', ['secret_expired' => false]);
+mock('/_mock/entra', ['org_access' => false]);
+try { Project::testAndCache($ent); ok('not in the organization', false); } catch (AdoException $e) { ok('application not added to the organization: AUTH with the hint what to do', $e->getKind() === AdoException::AUTH && str_contains($e->getMessage(), 'added as a user of the Azure DevOps organization'), $e->getMessage()); }
+mock('/_mock/entra', ['org_access' => true]);
+$forget = fn() => $DB->update(Project::getTable(), ['access_token' => null, 'access_token_expires' => 0], ['id' => $ent]);   // a kept token would hide the sign-in
+$forget();
+mock('/_mock/fail', ['status' => 500]);
+try { Project::testAndCache($ent); ok('Entra down', false); } catch (AdoException $e) { ok('Microsoft Entra down -> SERVER error naming Entra', $e->getKind() === AdoException::SERVER && str_contains($e->getMessage(), 'Microsoft Entra'), $e->getMessage()); }
+mock('/_mock/fail', ['status' => 0]);
+Settings::save(['entra_authority' => 'http://127.0.0.1:9']);
+$forget();
+try { Project::testAndCache($ent); ok('Entra unreachable', false); } catch (AdoException $e) { ok('Microsoft Entra unreachable -> NETWORK', $e->getKind() === AdoException::NETWORK && str_contains($e->getMessage(), 'Microsoft Entra')); }
+Settings::save(['entra_authority' => 'http://127.0.0.1:8098/_entra/']);
+Project::testAndCache($ent);
+
+echo "== Entra project: work item created and followed with the application's identity\n";
+$te = newTicket('Via Entra');
+$r = Link::createFromTicket($te, $ent, 2, 600, '', true, 'none', false);
+$wid = (int) $r['link']->fields['workitem_id'];
+$creates_b = array_filter(requests('POST /acme/Tata/_apis/wit/workitems/$Issue'), fn($x) => $x['auth_type'] === 'Bearer');
+ok('work item created under the Epic, authenticated with a Bearer token', item($wid)['fields']['System.TeamProject'] === 'Tata' && (int) item($wid)['fields']['System.Parent'] === 600 && count($creates_b) >= 1);
+$tp = newTicket('Meme cron, jeton personnel');
+$lp = Link::createFromTicket($tp, $toto, 2, 0, '', true, 'none', false)['link'];
+$lq = Link::createFromTicket($tq = newTicket('Meme cron, Entra'), $ent, 2, 0, '', true, 'none', false)['link'];
+mock('/_mock/state', ['id' => $wid, 'state' => 'Done', 'by' => 'Bob Tata']);
+mock('/_mock/state', ['id' => (int) $lp->fields['workitem_id'], 'state' => 'Closed', 'by' => 'Jane Dev']);
+mock('/_mock/state', ['id' => (int) $lq->fields['workitem_id'], 'state' => 'Done', 'by' => 'Bob Tata']);
+Project::saveFromInput($entraInput(['client_secret' => 'wrong-secret']), $ent);
+runCron();
+ok('wrong Entra secret: its links stay open with the reason, the PAT project is still checked', linkOf($r['link']->getID())['state'] === 'opened' && str_contains((string) linkOf($lq->getID())['last_error'], 'AADSTS7000215') && linkOf($lp->getID())['state'] === 'closed', (string) linkOf($lq->getID())['last_error']);
+ok('error shown on the Entra project', str_contains((string) Project::find($ent)['last_error'], 'AADSTS7000215'));
+Project::saveFromInput($entraInput(), $ent);
+runCron();
+ok('secret fixed: both Entra work items processed in the same run as PAT projects', linkOf($r['link']->getID())['state'] === 'closed' && linkOf($lq->getID())['state'] === 'closed' && linkOf($lq->getID())['closed_by'] === 'Bob Tata');
+
+echo "== Switching between the two authentication modes\n";
+Project::saveFromInput($entraInput(['auth_mode' => 'pat', 'token' => 'pat-tata', 'client_secret' => '']), $ent);
+$b0 = $authCount('Basic'); $s2 = $signins();
+Project::testAndCache($ent);
+ok('PAT mode: Basic credentials, no sign-in to Entra', $authCount('Basic') > $b0 && $signins() === $s2);
+ok('the Entra values are kept while the PAT is used', Project::find($ent)['client_id'] === 'app-tata' && Project::find($ent)['client_secret'] !== null && Project::find($ent)['client_secret'] !== '');
+Project::saveFromInput($entraInput(['client_secret' => '']), $ent);
+$forget();
+$res = Project::testAndCache($ent);
+ok('back to Entra without typing the secret again: the stored one is used', $res['user'] === 'App Tata' && $signins() === $s2 + 1);
+Project::saveFromInput($entraInput(['auth_mode' => 'pat', 'token' => '', 'client_secret' => '']), $ent);
+Project::saveFromInput($entraInput(['auth_mode' => 'entra', 'client_secret' => '']), $ent);
+ok('the token of the PAT mode is kept too', Project::token(Project::find($ent)) === 'pat-tata');
 
 echo "== Rights\n";
 ok('self-service interface is refused whatever the right', (function () { $s = $_SESSION; $_SESSION['glpiactiveprofile']['interface'] = 'helpdesk'; $r = !Link::canView() && !Link::canCreate(); $_SESSION = $s; return $r; })());

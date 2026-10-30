@@ -2,7 +2,7 @@
 
 Create an Azure DevOps work item (User Story, Product Backlog Item, Issue…) from a GLPI ticket, optionally **under an Epic or a Feature**, or link an existing one, then **check every 5 minutes** (GLPI automatic action) whether it is done. When it is, the plugin acts on the ticket **through GLPI's own objects** (followup, solution), so history, business rules, notifications and other automatic actions (auto-close of solved tickets, satisfaction surveys…) run as for a manual action.
 
-Each Azure DevOps project is configured with **its own access token**, and each project can be restricted to **chosen groups and users**.
+Each Azure DevOps project is configured with **its own credentials** — a personal access token, or a **Microsoft Entra application** that is not tied to anybody's account — and each project can be restricted to **chosen groups and users**.
 
 Tested on **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) against a mock of the Azure DevOps REST API (see *Tests*). License: AGPL-3.0-or-later.
 
@@ -20,14 +20,26 @@ Tested on **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) against a mock of the Azure 
 |---|---|
 | Name | Shown to technicians when they choose where to create the work item |
 | Organization / project | `my-organization` (or its URL) and the Azure DevOps project name |
-| Access token (PAT) | A personal access token with the **Work Items (Read & write)** scope, whose owner can work on the project. Stored **encrypted** (GLPI's key), never shown again, used **only for this project** |
+| Authentication | **Personal access token (PAT)** or **Microsoft Entra application** (see below) |
+| Access token (PAT) | A personal access token with the **Work Items (Read & write)** and **Project and Team (Read)** scopes, whose owner can work on the project. Stored **encrypted** (GLPI's key), never shown again, used **only for this project** |
 | Type to create | `User Story` (Agile), `Product Backlog Item` (Scrum), `Issue` (Basic)… chosen from the types read by *Save and test the connection* |
 | Possible parents | Types under which a work item can be created and that can be linked (`Epic`, `Feature`…) |
 | "Followup only" types | Types (Epic, Feature…) whose completion only adds a private followup and never solves the ticket |
 | Done categories | `Completed` (always) and optionally `Resolved`. Categories come from the process template, so custom states and processes work without configuration |
 | Area path, default tags | Optional |
 
-Tokens expire: when a token is refused, the error is shown in the project list and on the linked tickets, the other projects keep being checked, and entering a new token clears it.
+Credentials expire or get revoked: when they are refused, the error is shown in the project list and on the linked tickets, the other projects keep being checked, and entering new ones clears it.
+
+### Authenticate without a personal account (Microsoft Entra application)
+
+A personal access token belongs to a person: if that account is disabled, or the token expires, the project stops working. With an **Entra application** (a *service principal*), the plugin signs in with the application's own credentials and no personal account is involved:
+
+1. In Microsoft Entra (*App registrations > New registration*), register an application. Note its **Directory (tenant) ID** and **Application (client) ID**.
+2. In *Certificates & secrets*, create a **client secret** and copy its **Value** (not its ID).
+3. In Azure DevOps, *Organization settings > Users > Add users*: add the application (access level **Basic**), then give it access to the project (for example as a member of its *Contributors* group). The organization must be connected to the same Entra tenant. Registering the application in Entra is **not enough**: without this step Azure DevOps refuses it.
+4. In the plugin, choose *Microsoft Entra application*, enter the three values and use *Save and test the connection*.
+
+The plugin gets an access token from Entra (valid about an hour), keeps it encrypted in the project while it is valid, renews it before it expires, and asks for a new one once if Azure DevOps refuses it earlier (revoked). The client secret has an expiry date too, but it belongs to the application, not to a person: renew it before it ends. Both modes can be filled in; the one selected is used, so you can switch without typing the other credentials again. Sovereign clouds use another sign-in address: *Advanced > Microsoft Entra sign-in address*.
 
 ### Who can use which project
 
@@ -56,7 +68,7 @@ Ticket tab **Azure DevOps**:
 | Work item not found (deleted, access removed) | Given up after 3 consecutive checks; private informational followup |
 | Work item already done when linked | Linked for reference, no action on the ticket |
 | Ticket already closed / in trash | Link marked done, ticket untouched |
-| Token refused or expired, Azure DevOps unreachable | That project is retried at the next run (error shown); other projects are still checked |
+| Credentials refused or expired (token, client secret), Azure DevOps or Entra unreachable | That project is retried at the next run (error shown); other projects are still checked |
 | Rate limit (HTTP 429) | The run stops cleanly and resumes at the next run |
 | Failure while acting on the ticket | Everything rolled back; the work item stays "open" and is retried, no duplicates |
 
@@ -79,7 +91,7 @@ English (`en_GB`, `en_US`) and French (`fr_FR`). The plugin uses **the language 
 
 ## Update
 
-Replace the folder, clear GLPI's cache (`php bin/console cache:clear`), then in *Setup > Plugins* click *Update* and *Activate*. Projects, tokens, access lists, links, settings and rights are preserved (`tests/upgrade_test.sh`).
+Replace the folder, clear GLPI's cache (`php bin/console cache:clear`), then in *Setup > Plugins* click *Update* and *Activate*. Projects, credentials, access lists, links, settings and rights are preserved, and existing projects stay in personal-token mode (`tests/upgrade_test.sh`).
 
 ## Known limits
 
@@ -87,8 +99,9 @@ Replace the folder, clear GLPI's cache (`php bin/console cache:clear`), then in 
 - Attachments of followups are not copied (only the ticket's own and the images of its description). Pull requests are not shown.
 - Detection delay is about 5 minutes (polling, no service hook).
 - Azure DevOps Services (`dev.azure.com`). Azure DevOps Server (on-premises) uses another URL layout and is not supported.
-- The tests below use a **mock** of the Azure DevOps API, not the real service: try it on a sandbox project first (see *Contributing* for what to check).
+- Entra applications sign in with a **client secret** (certificates and federated credentials are not supported).
+- The tests below use a **mock** of the Azure DevOps API and of the Microsoft Entra sign-in, not the real services: try it on a sandbox project first (see *Contributing* for what to check).
 
 ## Tests (`tests/`)
 
-`mock_ado.py` (Azure DevOps API mock with two projects and two process shapes), `integration.php` (real GLPI, CLI, real cron: projects and encryption, access matrix, creation under a parent, linking, every automatic-action case), `http_test.py` (real web app: login, tab, configuration, access restrictions, CSRF, languages), `upgrade_test.sh`, `run_all.sh`.
+`mock_ado.py` (Azure DevOps API and Entra sign-in mock, with two projects and two process shapes), `integration.php` (real GLPI, CLI, real cron: projects and encryption, access matrix, creation under a parent, linking, every automatic-action case, the Entra sign-in), `http_test.py` (real web app: login, tab, configuration, access restrictions, CSRF, languages), `upgrade_test.sh`, `run_all.sh`.

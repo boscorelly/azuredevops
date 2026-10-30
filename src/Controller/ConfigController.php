@@ -41,6 +41,7 @@ final class ConfigController extends AbstractController
                 'name'         => $project['name'],
                 'target'       => $project['organization'] . ' / ' . $project['ado_project'],
                 'type'         => $project['workitem_type'],
+                'auth'         => $project['auth_mode'] ?? 'pat',
                 'is_active'    => (bool) $project['is_active'],
                 'is_restricted' => (bool) $project['is_restricted'],
                 'users'        => count(ProjectAccess::users((int) $project['id'])),
@@ -89,10 +90,12 @@ final class ConfigController extends AbstractController
         if ((int) $input['max_attachment_mb'] < 1) {
             $input['max_attachment_mb'] = '10';
         }
-        if (!empty($input['api_base_url']) && !preg_match('#^https?://#i', (string) $input['api_base_url'])) {
-            Session::addMessageAfterRedirect(__('The base URL must start with http:// or https://', 'azuredevops'), false, ERROR);
+        foreach (['api_base_url', 'entra_authority'] as $url_setting) {
+            if (!empty($input[$url_setting]) && !preg_match('#^https?://#i', (string) $input[$url_setting])) {
+                Session::addMessageAfterRedirect(__('The base URL must start with http:// or https://', 'azuredevops'), false, ERROR);
 
-            return new RedirectResponse($this->url('/Config'));
+                return new RedirectResponse($this->url('/Config'));
+            }
         }
 
         Settings::save($input);
@@ -219,16 +222,20 @@ final class ConfigController extends AbstractController
             'id' => 0, 'name' => '', 'organization' => '', 'ado_project' => '', 'is_active' => 1, 'is_restricted' => 1,
             'workitem_type' => '', 'parent_types' => 'Epic,Feature', 'followup_only_types' => 'Epic,Feature',
             'done_categories' => 'Completed', 'area_path' => '', 'default_tags' => 'glpi', 'last_error' => null,
+            'auth_mode' => 'pat', 'tenant_id' => '', 'client_id' => '',
         ];
         $row = ($project ?? []) + $defaults;
         $id  = (int) $row['id'];
-        $has_token = $project !== null && ($project['token'] ?? '') !== '';
-        unset($row['token'], $row['types_cache']); // the token is never sent back to the browser
+        $has_token  = $project !== null && ($project['token'] ?? '') !== '';
+        $has_secret = $project !== null && ($project['client_secret'] ?? '') !== '';
+        // Secrets are never sent back to the browser.
+        unset($row['token'], $row['client_secret'], $row['access_token'], $row['types_cache']);
 
         return $this->render('@azuredevops/project.html.twig', [
             'project'   => $row,
             'is_new'    => $project === null,
             'has_token' => $has_token,
+            'has_secret' => $has_secret,
             'types'     => $project !== null ? Project::typeNames($project) : [],
             'parent_types'  => Project::csv($row['parent_types']),
             'followup_only_types' => Project::csv($row['followup_only_types']),

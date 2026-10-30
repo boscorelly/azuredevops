@@ -22,6 +22,7 @@
                         <th>{{ __('Name', 'azuredevops') }}</th>
                         <th>{{ __('Organization / project', 'azuredevops') }}</th>
                         <th>{{ __('Work item type', 'azuredevops') }}</th>
+                        <th>{{ __('Authentication', 'azuredevops') }}</th>
                         <th>{{ __('Who can use it', 'azuredevops') }}</th>
                         <th>{{ __('Status', 'azuredevops') }}</th>
                     </tr>
@@ -32,6 +33,7 @@
                         <td><a href="{{ project_url }}/{{ project.id }}">{{ project.name }}</a></td>
                         <td class="text-muted">{{ project.target }}</td>
                         <td>{{ project.type ?: '—' }}</td>
+                        <td>{% if project.auth == 'entra' %}<span class="badge bg-purple-lt">{{ __('Entra application', 'azuredevops') }}</span>{% else %}<span class="badge bg-secondary-lt">{{ __('Personal token', 'azuredevops') }}</span>{% endif %}</td>
                         <td>
                             {% if not project.is_restricted %}
                                 <span class="badge bg-blue-lt">{{ __('Every technician with the "create" right', 'azuredevops') }}</span>
@@ -127,12 +129,15 @@
         </div>
     </div>
 
-    <details class="card mb-3" {{ settings.api_base_url != 'https://dev.azure.com' ? 'open' }}>
+    <details class="card mb-3" {{ (settings.api_base_url != 'https://dev.azure.com' or settings.entra_authority != 'https://login.microsoftonline.com') ? 'open' }}>
         <summary class="card-header"><h3 class="card-title">{{ __('Advanced', 'azuredevops') }}</h3></summary>
         <div class="card-body">
             <label class="form-label">{{ __('Azure DevOps base URL', 'azuredevops') }}</label>
             <input type="url" name="api_base_url" class="form-control" value="{{ settings.api_base_url }}" placeholder="https://dev.azure.com">
             <div class="form-text">{{ __('Leave https://dev.azure.com for Azure DevOps Services.', 'azuredevops') }}</div>
+            <label class="form-label mt-3">{{ __('Microsoft Entra sign-in address', 'azuredevops') }}</label>
+            <input type="url" name="entra_authority" class="form-control" value="{{ settings.entra_authority }}" placeholder="https://login.microsoftonline.com">
+            <div class="form-text">{{ __('Where the Entra applications of the projects sign in. Leave https://login.microsoftonline.com except for a sovereign cloud.', 'azuredevops') }}</div>
         </div>
     </details>
 

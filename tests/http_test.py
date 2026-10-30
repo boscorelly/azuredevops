@@ -29,7 +29,7 @@ def either(page, *needles):
 
 
 # clean what a previous (possibly interrupted) run left
-sql("delete from glpi_plugin_azuredevops_projects_groups where projects_id in (select id from glpi_plugin_azuredevops_projects where name like 'WebProj%'); delete from glpi_plugin_azuredevops_projects where name like 'WebProj%'")
+sql("delete from glpi_plugin_azuredevops_projects_groups where projects_id in (select id from glpi_plugin_azuredevops_projects where name like 'Web%'); delete from glpi_plugin_azuredevops_projects where name like 'Web%'")
 toto = int(sql("select id from glpi_plugin_azuredevops_projects where name='Toto'"))
 tata = int(sql("select id from glpi_plugin_azuredevops_projects where name='Tata'"))
 g1 = int(sql("select id from glpi_groups where name='ado_group1'"))
@@ -108,6 +108,31 @@ check('token still hidden', 'pat-tata' not in page)
 
 s, page, _ = a.req(f'{P}/Config/Project', {'name': 'x', 'id': str(new_id)})
 check('project POST without CSRF rejected', s in (400, 403), str(s))
+
+
+print('== administrator: a project that signs in as a Microsoft Entra application')
+s, page, _ = a.req(f'{P}/Config/Project')
+check('form offers both authentication modes', 'name="auth_mode" value="pat"' in page and 'name="auth_mode" value="entra"' in page and 'name="tenant_id"' in page and 'name="client_id"' in page and 'name="client_secret"' in page, str(s))
+check('the Entra set-up instructions are on the form', either(page, 'added to Azure DevOps as a user', 'ajoutée à Azure DevOps comme utilisateur'), text(page)[:200])
+ctok = form_token(page, f'{P}/Config/Project')
+s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': ctok, 'id': '0', 'name': 'WebEntra', 'organization': 'acme', 'ado_project': 'Tata', 'auth_mode': 'entra',
+                'tenant_id': 'tenant-1', 'client_id': 'app-tata', 'client_secret': 'secret-tata', 'is_active': '1', 'is_restricted': '1', 'workitem_type': 'Issue',
+                'parent_types': 'Epic', 'followup_only_types': 'Epic', 'done_categories[]': ['Completed'], 'default_tags': 'glpi', 'groups[]': [str(g2)], '_test': '1'})
+check('Entra project saved without any personal token', s in (302, 303) and re.search(rf'{P}/Config/Project/\d+', h.get('Location', '')) is not None, f'{s} {h.get("Location")}')
+eid = int(re.search(r'/Config/Project/(\d+)', h.get('Location', '/0')).group(1))
+row = sql(f"select auth_mode,ifnull(token,''),client_secret,tenant_id,client_id from glpi_plugin_azuredevops_projects where id={eid}").split('\t')
+check('stored: mode, tenant and application ID in clear, secret encrypted, no PAT', row[0] == 'entra' and row[1] == '' and row[2] not in ('', 'secret-tata') and 'secret-tata' not in row[2] and row[3] == 'tenant-1' and row[4] == 'app-tata', str(row))
+s, page, _ = a.req(f'{P}/Config/Project/{eid}')
+check('connection test: signed in as the application', either(page, 'Connection successful', 'Connexion réussie') and 'App Tata' in page, text(page)[:300])
+check('the form shows the Entra mode, the IDs, and never the secret', 'name="auth_mode" value="entra" checked' in page and 'value="tenant-1"' in page and 'value="app-tata"' in page and 'secret-tata' not in page)
+check('the secret field is optional once one is stored', not re.search(r'name="client_secret"[^>]*required', page))
+check('the access token obtained from Entra is not in the page', 'eyJ.' not in page)
+s, page, _ = a.req(f'{P}/Config')
+check('project list shows the authentication mode', either(page, 'Entra application', 'Application Entra') and either(page, 'Personal token', 'Jeton personnel'))
+check('advanced settings: Microsoft Entra sign-in address', 'name="entra_authority"' in page)
+dt = form_token(page, f'{P}/Config/Project/{eid}/Delete') or form_token(a.req(f'{P}/Config/Project/{eid}')[1], f'/Config/Project/{eid}/Delete')
+s, _, _ = a.req(f'{P}/Config/Project/{eid}/Delete', {'_glpi_csrf_token': dt})
+check('Entra project deleted', s in (302, 303) and sql(f"select count(*) from glpi_plugin_azuredevops_projects where id={eid}") == '0', str(s))
 
 print('== administrator: access search and work item search')
 s, body, _ = a.req(f'{P}/Config/Search/Users?term=ado_a', headers={'X-Requested-With': 'XMLHttpRequest'})

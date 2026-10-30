@@ -7,7 +7,8 @@ use Config;
 /**
  * Global plugin settings, stored in glpi_configs (context "plugin:azuredevops").
  *
- * No secret here: the access tokens belong to the configured projects (see Project) and are encrypted there.
+ * No secret here: the credentials (access token, or Entra application) belong to the configured projects (see Project)
+ * and are encrypted there.
  */
 final class Settings
 {
@@ -15,9 +16,13 @@ final class Settings
 
     public const DEFAULT_BASE_URL = 'https://dev.azure.com';
 
+    public const DEFAULT_ENTRA_AUTHORITY = 'https://login.microsoftonline.com';
+
     public const DEFAULTS = [
         // Advanced: Azure DevOps Services is https://dev.azure.com (also used to point the tests to a mock)
         'api_base_url'           => self::DEFAULT_BASE_URL,
+        // Advanced: where the Microsoft Entra applications sign in (sovereign clouds use another address)
+        'entra_authority'        => self::DEFAULT_ENTRA_AUTHORITY,
         // Work item creation
         'title_template'         => '[GLPI #{id}] {title}',
         'include_people'         => '1',
@@ -68,9 +73,20 @@ final class Settings
                     $value = self::DEFAULT_BASE_URL;
                 }
             }
+            if ($name === 'entra_authority') {
+                $value = rtrim($value, '/');
+                if ($value === '') {
+                    $value = self::DEFAULT_ENTRA_AUTHORITY;
+                }
+            }
             $values[$name] = $value;
         }
         Config::setConfigurationValues(self::CONTEXT, $values);
+    }
+
+    public static function entraAuthority(): string
+    {
+        return rtrim(self::get('entra_authority') ?: self::DEFAULT_ENTRA_AUTHORITY, '/');
     }
 
     public static function baseUrl(): string

@@ -123,6 +123,22 @@ function plugin_azuredevops_install(): bool
         );
     }
 
+    // 1.1.0: Microsoft Entra application as an alternative to the personal access token.
+    // The same code serves the first installation and the update from 1.0.x.
+    $projects_table = Project::getTable();
+    foreach ([
+        'auth_mode'            => "VARCHAR(8) NOT NULL DEFAULT 'pat'",
+        'tenant_id'            => 'VARCHAR(255) DEFAULT NULL',
+        'client_id'            => 'VARCHAR(255) DEFAULT NULL',
+        'client_secret'        => 'TEXT DEFAULT NULL',
+        'access_token'         => 'TEXT DEFAULT NULL',
+        'access_token_expires' => "INT {$key_sign} NOT NULL DEFAULT '0'",
+    ] as $field => $definition) {
+        if (!$DB->fieldExists($projects_table, $field)) {
+            $DB->doQuery("ALTER TABLE `$projects_table` ADD COLUMN `$field` $definition");
+        }
+    }
+
     // Future schema changes go here, written as "if the column/table is missing, add it"
     // (use $DB->fieldExists() / $migration->addField()): GLPI gives no "previous version" to the
     // install function, so each step must detect by itself whether it is needed.

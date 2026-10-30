@@ -35,11 +35,40 @@
                 </div>
             </div>
             <div class="mb-3">
+                <label class="form-label">{{ __('Authentication', 'azuredevops') }}</label>
+                <label class="form-check"><input class="form-check-input" type="radio" name="auth_mode" value="pat" {{ project.auth_mode != 'entra' ? 'checked' }}><span class="form-check-label">{{ __('Personal access token (PAT)', 'azuredevops') }}</span></label>
+                <label class="form-check"><input class="form-check-input" type="radio" name="auth_mode" value="entra" {{ project.auth_mode == 'entra' ? 'checked' }}><span class="form-check-label">{{ __('Microsoft Entra application (service principal)', 'azuredevops') }}</span></label>
+                <div class="form-text">{{ __('A personal access token belongs to a person: it stops working when that account is disabled or the token expires. An Entra application is not tied to anybody.', 'azuredevops') }}</div>
+            </div>
+
+            <div id="ado_auth_pat" class="mb-3">
                 <label class="form-label" for="ado_token">{{ __('Access token (PAT)', 'azuredevops') }}</label>
                 <input id="ado_token" type="password" name="token" class="form-control" autocomplete="new-password"
-                       placeholder="{{ has_token ? __('(unchanged)', 'azuredevops') : '' }}" {{ has_token ? '' : 'required' }}>
-                <div class="form-text">{{ __('A personal access token with the "Work Items (Read & write)" scope, whose owner can work on this project. It is stored encrypted, never shown again, and used only for this project.', 'azuredevops') }}</div>
+                       placeholder="{{ has_token ? __('(unchanged)', 'azuredevops') : '' }}" {{ (not has_token and project.auth_mode != 'entra') ? 'required' }}>
+                <div class="form-text">{{ __('A personal access token with the "Work Items (Read & write)" and "Project and Team (Read)" scopes, whose owner can work on this project. It is stored encrypted, never shown again, and used only for this project.', 'azuredevops') }}</div>
             </div>
+
+            <div id="ado_auth_entra" class="mb-3">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="ado_tenant">{{ __('Tenant ID', 'azuredevops') }}</label>
+                        <input id="ado_tenant" type="text" name="tenant_id" class="form-control" value="{{ project.tenant_id }}" placeholder="00000000-0000-0000-0000-000000000000">
+                        <div class="form-text">{{ __('The directory (tenant) ID, or its domain name.', 'azuredevops') }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="ado_client">{{ __('Application (client) ID', 'azuredevops') }}</label>
+                        <input id="ado_client" type="text" name="client_id" class="form-control" value="{{ project.client_id }}" placeholder="00000000-0000-0000-0000-000000000000">
+                    </div>
+                </div>
+                <label class="form-label" for="ado_secret">{{ __('Client secret', 'azuredevops') }}</label>
+                <input id="ado_secret" type="password" name="client_secret" class="form-control" autocomplete="new-password"
+                       placeholder="{{ has_secret ? __('(unchanged)', 'azuredevops') : '' }}">
+                <div class="form-text">{{ __('The secret value (not its ID). It is stored encrypted, never shown again, and used only for this project.', 'azuredevops') }}</div>
+                <div class="alert alert-info mt-3 mb-0">
+                    {{ __('Before it can work, the application must be registered in Microsoft Entra ID and added to Azure DevOps as a user: Organization settings > Users > Add users (access level Basic), then give it access to the project (for example as a member of its Contributors group). The organization must be connected to the same Entra tenant.', 'azuredevops') }}
+                </div>
+            </div>
+
             <label class="form-check"><input class="form-check-input" type="checkbox" name="is_active" value="1" {{ project.is_active ? 'checked' }}><span class="form-check-label">{{ __('Active', 'azuredevops') }}</span></label>
             <div class="form-text ms-4">{{ __('An inactive project cannot be chosen, and its work items are not checked.', 'azuredevops') }}</div>
         </div>
@@ -161,6 +190,18 @@
 
 <script>
     $(function () {
+        var hasToken = {{ has_token ? 'true' : 'false' }}, hasSecret = {{ has_secret ? 'true' : 'false' }};
+        function syncAuth() {
+            var entra = $('input[name=auth_mode]:checked').val() === 'entra';
+            $('#ado_auth_pat').toggleClass('d-none', entra);
+            $('#ado_auth_entra').toggleClass('d-none', !entra);
+            $('#ado_token').prop('required', !entra && !hasToken);
+            $('#ado_tenant, #ado_client').prop('required', entra);
+            $('#ado_secret').prop('required', entra && !hasSecret);
+        }
+        $('input[name=auth_mode]').on('change', syncAuth);
+        syncAuth();
+
         var search = function (url, placeholder) {
             return {
                 width: '100%', placeholder: placeholder, closeOnSelect: false,

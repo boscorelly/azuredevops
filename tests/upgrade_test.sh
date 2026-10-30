@@ -13,7 +13,9 @@ access=$($Q "select (select count(*) from glpi_plugin_azuredevops_projects_users
 tokens=$($Q "select md5(group_concat(token order by id)) from glpi_plugin_azuredevops_projects")
 echo "before: $projects projects, $links links, $access access rows"
 
-$Q "update glpi_profilerights set rights=1 where name='plugin_azuredevops_workitem' and profiles_id=4; delete from glpi_configs where context='plugin:azuredevops' and name='creation_followup_private'; update glpi_plugins set version='0.9.0' where directory='azuredevops';"
+# 1.0.x had none of the Entra columns
+$Q "alter table glpi_plugin_azuredevops_projects drop column auth_mode, drop column tenant_id, drop column client_id, drop column client_secret, drop column access_token, drop column access_token_expires"
+$Q "update glpi_profilerights set rights=1 where name='plugin_azuredevops_workitem' and profiles_id=4; delete from glpi_configs where context='plugin:azuredevops' and name='creation_followup_private'; update glpi_plugins set version='1.0.0' where directory='azuredevops';"
 rm -rf files/_cache/*
 php bin/console plugin:install azuredevops --username=glpi --allow-superuser -n >/dev/null 2>&1   # first call only marks it "to update"
 php bin/console plugin:install azuredevops --username=glpi --allow-superuser -n >/dev/null 2>&1
@@ -23,6 +25,8 @@ check "plugin active (state 1) and version current" "$($Q "select concat(state,'
 check "rights chosen by the administrators are kept" "$($Q "select rights from glpi_profilerights where name='plugin_azuredevops_workitem' and profiles_id=4")" "1"
 check "missing setting added back" "$($Q "select count(*) from glpi_configs where context='plugin:azuredevops' and name='creation_followup_private'")" "1"
 check "one automatic action" "$($Q "select count(*) from glpi_crontasks where itemtype like '%Azuredevops%'")" "1"
+check "the six Entra columns are added back" "$($Q "select count(*) from information_schema.columns where table_schema=database() and table_name='glpi_plugin_azuredevops_projects' and column_name in ('auth_mode','tenant_id','client_id','client_secret','access_token','access_token_expires')")" "6"
+check "existing projects are in personal-token mode" "$($Q "select count(*) from glpi_plugin_azuredevops_projects where auth_mode='pat'")" "$projects"
 check "projects kept" "$($Q "select count(*) from glpi_plugin_azuredevops_projects")" "$projects"
 check "tokens untouched" "$($Q "select md5(group_concat(token order by id)) from glpi_plugin_azuredevops_projects")" "$tokens"
 check "access lists kept" "$($Q "select (select count(*) from glpi_plugin_azuredevops_projects_users)+(select count(*) from glpi_plugin_azuredevops_projects_groups)")" "$access"

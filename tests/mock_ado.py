@@ -16,10 +16,12 @@ Control endpoints (not part of Azure DevOps), JSON bodies:
   POST /_mock/parent  {"id":101,"parent":500}
   POST /_mock/fail    {"status":500,"retry_after":30}                 every API request fails (0 = stop)
   POST /_mock/token   {"mode":"html"}                                 refused tokens answer 203 + sign-in page ("401" = default)
+  POST /_mock/entra   {"expires_in":3600,"secret_expired":false,"org_access":true}   behaviour of the Entra sign-in
+  POST /_mock/revoke_bearers                                          every access token issued so far stops working
   GET  /_mock/dump    -> everything received so far
   POST /_mock/reset
 """
-import base64, json, re, sys, urllib.parse, uuid
+import base64, json, re, sys, time, urllib.parse, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ORG = 'acme'
@@ -48,6 +50,10 @@ PROJECTS = {
         'states_in_list': False, 'closed_fields': False,
     },
 }
+# Microsoft Entra application: signs in at /_entra/<tenant>/oauth2/v2.0/token and is a user of the organization,
+# with access to one project (like a PAT, but not tied to a person)
+APPS = {'app-tata': {'tenant': 'tenant-1', 'secret': 'secret-tata', 'project': 'Tata', 'user': 'App Tata'}}
+SCOPE = '499b84ac-1321-427f-aa17-267ca6975798/.default'
 SIGNIN_HTML = '<!DOCTYPE html><html><head><title>Sign In</title></head><body>Sign in to Azure DevOps</body></html>'
 
 state = {}
@@ -55,7 +61,8 @@ state = {}
 
 def reset():
     state.clear()
-    state.update({'items': {}, 'attachments': {}, 'requests': [], 'next_id': 100, 'fail': 0, 'retry_after': 0, 'token_mode': '401'})
+    state.update({'items': {}, 'attachments': {}, 'requests': [], 'next_id': 100, 'fail': 0, 'retry_after': 0, 'token_mode': '401',
+                  'bearers': {}, 'token_requests': [], 'entra': {'expires_in': 3600, 'secret_expired': False, 'org_access': True}})
 
 
 reset()
@@ -128,7 +135,15 @@ class H(BaseHTTPRequestHandler):
         self.send(code, {'$id': '1', 'message': msg, 'typeKey': 'Error', 'errorCode': 0}, headers=headers)
 
     def token_project(self):
+        """Project the credentials give access to (None = refused). Basic = a PAT, Bearer = an Entra access token."""
         auth = self.headers.get('Authorization', '')
+        self.who_user = None
+        if auth.startswith('Bearer '):
+            b = state['bearers'].get(auth[7:])
+            if b is None or b['exp'] < time.time() or not state['entra']['org_access']:
+                return None
+            self.who_user = APPS[b['client']]['user']
+            return b['project']
         if not auth.startswith('Basic '):
             return None
         try:
@@ -138,8 +153,28 @@ class H(BaseHTTPRequestHandler):
         token = user_pass.split(':', 1)[1] if ':' in user_pass else ''
         for name, p in PROJECTS.items():
             if p['token'] == token:
+                self.who_user = p['user']
                 return name
         return None
+
+    def entra_token(self, tenant, raw):
+        form = {k: v[0] for k, v in urllib.parse.parse_qs(raw.decode()).items()}
+        state['token_requests'].append({'tenant': tenant, 'form': form, 'time': time.time()})
+        app = APPS.get(form.get('client_id', ''))
+        err = lambda code, e, desc: self.send(code, {'error': e, 'error_description': desc + '\r\nTrace ID: 0000\r\nCorrelation ID: 1111\r\nTimestamp: 2026-10-27 10:30:00Z'})
+        if state['fail']:
+            return self.send(state['fail'], {'error': 'temporarily_unavailable'})
+        if form.get('grant_type') != 'client_credentials' or form.get('scope') != SCOPE:
+            return err(400, 'invalid_scope', 'AADSTS70011: The provided request must include a scope.')
+        if app is None or app['tenant'] != tenant:
+            return err(400, 'unauthorized_client', "AADSTS700016: Application with identifier '%s' was not found in the directory." % form.get('client_id'))
+        if state['entra']['secret_expired']:
+            return err(401, 'invalid_client', "AADSTS7000222: The provided client secret keys for app '%s' are expired." % form['client_id'])
+        if form.get('client_secret') != app['secret']:
+            return err(401, 'invalid_client', 'AADSTS7000215: Invalid client secret provided. Ensure the secret being sent in the request is the client secret value, not the client secret ID.')
+        token = 'eyJ.' + str(uuid.uuid4())
+        state['bearers'][token] = {'project': app['project'], 'client': form['client_id'], 'exp': time.time() + state['entra']['expires_in']}
+        return self.send(200, {'token_type': 'Bearer', 'expires_in': state['entra']['expires_in'], 'ext_expires_in': state['entra']['expires_in'], 'access_token': token})
 
     def handle_any(self, method):
         url = urllib.parse.urlparse(self.path)
@@ -151,8 +186,13 @@ class H(BaseHTTPRequestHandler):
         if path.startswith('/_mock/'):
             return self.control(method, path, raw)
 
+        mm = re.match(r'^/_entra/([^/]+)/oauth2/v2\.0/token$', path)
+        if mm and method == 'POST':
+            return self.entra_token(mm.group(1), raw)
+
         ctype = self.headers.get('Content-Type', '')
         state['requests'].append({'method': method, 'path': path, 'query': url.query, 'ctype': ctype, 'auth': bool(self.headers.get('Authorization')),
+                                  'auth_type': self.headers.get('Authorization', '').split(' ')[0],
                                   'body': raw.decode('utf-8', 'replace')[:60000] if 'octet' not in ctype else '<%d bytes>' % len(raw)})
 
         who = self.token_project()
@@ -170,7 +210,7 @@ class H(BaseHTTPRequestHandler):
 
         # ---- organization level
         if rest == '_apis/connectionData' and method == 'GET':
-            return self.send(200, {'authenticatedUser': {'providerDisplayName': PROJECTS[who]['user']}})
+            return self.send(200, {'authenticatedUser': {'providerDisplayName': self.who_user}})
         mm = re.match(r'^_apis/projects/([^/]+)$', rest)
         if mm and method == 'GET':
             name = mm.group(1)
@@ -296,6 +336,12 @@ class H(BaseHTTPRequestHandler):
         if path == '/_mock/fail':
             state['fail'] = int(data['status'])
             state['retry_after'] = int(data.get('retry_after', 0))
+            return self.send(200, {})
+        if path == '/_mock/entra':
+            state['entra'].update(data)
+            return self.send(200, {})
+        if path == '/_mock/revoke_bearers':
+            state['bearers'].clear()
             return self.send(200, {})
         if path == '/_mock/token':
             state['token_mode'] = data['mode']

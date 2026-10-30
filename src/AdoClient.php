@@ -5,13 +5,15 @@ namespace GlpiPlugin\Azuredevops;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Utils;
+use Psr\Http\Message\StreamInterface;
 use Toolbox;
 
 /**
  * Minimal Azure DevOps REST client (work item tracking, API 7.1).
  *
  * - uses GLPI's Guzzle factory, so the GLPI proxy settings are honoured;
- * - authenticates with a personal access token (HTTP Basic, empty user name);
+ * - authenticates with a personal access token (HTTP Basic, empty user name) or as a Microsoft Entra application
+ *   (Bearer access token), see AdoAuth;
  * - every failure is converted to a typed AdoException;
  * - never logs the token.
  */
@@ -28,6 +30,7 @@ class AdoClient
     ];
 
     private ClientInterface $http;
+    private AdoAuth $auth;
     private string $root;
     private string $project_url;
 
@@ -38,13 +41,15 @@ class AdoClient
         string $base_url,
         private readonly string $organization,
         private readonly string $project,
-        private readonly string $token,
+        AdoAuth|string $auth,
         ?ClientInterface $http = null,
     ) {
-        $base_url = rtrim(trim($base_url), '/');
-        if ($base_url === '' || $organization === '' || $project === '' || $token === '' || !preg_match('#^https?://#i', $base_url)) {
+        // A string is a personal access token.
+        $this->auth = is_string($auth) ? AdoAuth::pat($auth) : $auth;
+        $base_url   = rtrim(trim($base_url), '/');
+        if ($base_url === '' || $organization === '' || $project === '' || !$this->auth->isConfigured() || !preg_match('#^https?://#i', $base_url)) {
             throw new AdoException(
-                __('The organization, the project or the access token is not configured.', 'azuredevops'),
+                __('The organization, the project or the credentials (access token, or Entra application) are not configured.', 'azuredevops'),
                 AdoException::CONFIG
             );
         }
@@ -70,29 +75,47 @@ class AdoClient
      */
     protected function request(string $method, string $url, array $options = [], string $api_version = self::API_VERSION): array
     {
-        $options['headers']['Authorization'] = 'Basic ' . base64_encode(':' . $this->token);
-        $options['query']                    = ($options['query'] ?? []) + ['api-version' => $api_version];
-        $options['http_errors']              = false;
+        $options['query']       = ($options['query'] ?? []) + ['api-version' => $api_version];
+        $options['http_errors'] = false;
 
-        try {
-            $response = $this->http->request($method, $url, $options);
-        } catch (GuzzleException $e) {
-            // Connection refused, DNS failure, TLS error, timeout...
-            throw new AdoException(
-                sprintf(__('Cannot reach Azure DevOps: %s', 'azuredevops'), $this->scrub($e->getMessage())),
-                AdoException::NETWORK
-            );
-        }
+        $attempt = 0;
+        do {
+            $retry = false;
+            // For an Entra application this may ask Microsoft Entra for a new access token.
+            $options['headers']['Authorization'] = $this->auth->header();
 
-        $status  = $response->getStatusCode();
-        $body    = (string) $response->getBody();
-        $ctype   = strtolower($response->getHeaderLine('Content-Type'));
-        $is_html = str_contains($ctype, 'text/html') || preg_match('/^\s*<(!doctype|html)/i', $body) === 1;
+            try {
+                $response = $this->http->request($method, $url, $options);
+            } catch (GuzzleException $e) {
+                // Connection refused, DNS failure, TLS error, timeout...
+                throw new AdoException(
+                    sprintf(__('Cannot reach Azure DevOps: %s', 'azuredevops'), $this->scrub($e->getMessage())),
+                    AdoException::NETWORK
+                );
+            }
+
+            $status  = $response->getStatusCode();
+            $body    = (string) $response->getBody();
+            $ctype   = strtolower($response->getHeaderLine('Content-Type'));
+            $is_html = str_contains($ctype, 'text/html') || preg_match('/^\s*<(!doctype|html)/i', $body) === 1;
+
+            // An access token that is refused before its expiry (revoked, or the application was just added to the
+            // organization): ask for a new one and try once more.
+            $refused = $status === 401 || $status === 203 || ($status < 400 && $is_html);
+            if ($refused && $attempt === 0 && $this->auth->isEntra()) {
+                $attempt++;
+                $retry = true;
+                $this->auth->invalidate();
+                if (($options['body'] ?? null) instanceof StreamInterface && $options['body']->isSeekable()) {
+                    $options['body']->rewind(); // an upload must be sent again from its start
+                }
+            }
+        } while ($retry);
 
         // A refused token does not always give a 401: Azure DevOps may answer 203 with its sign-in page.
         if ($status === 203 || ($status < 400 && $is_html)) {
             throw new AdoException(
-                __('Azure DevOps did not accept the access token (sign-in page received). Check that the token is valid, not expired, and has access to this organization.', 'azuredevops'),
+                __('Azure DevOps did not accept the access token (sign-in page received). Check that the token is valid, not expired, and has access to this organization.', 'azuredevops') . $this->entraHint(),
                 AdoException::AUTH,
                 $status
             );
@@ -123,7 +146,7 @@ class AdoClient
 
         return match (true) {
             $status === 401, $status === 403 => new AdoException(
-                sprintf(__('Azure DevOps refused access (HTTP %d)%s', 'azuredevops'), $status, $suffix),
+                sprintf(__('Azure DevOps refused access (HTTP %d)%s', 'azuredevops'), $status, $suffix) . $this->entraHint(),
                 AdoException::AUTH,
                 $status
             ),
@@ -156,11 +179,20 @@ class AdoClient
      */
     private function scrub(string $text): string
     {
-        if ($this->token === '') {
-            return $text;
-        }
+        $secrets = $this->auth->secrets();
 
-        return str_replace([base64_encode(':' . $this->token), $this->token], '***', $text);
+        return $secrets !== [] ? str_replace($secrets, '***', $text) : $text;
+    }
+
+    /**
+     * What to check when an Entra application is refused: the usual cause is that it is not a user of the
+     * organization yet (it is not enough to register it in Microsoft Entra).
+     */
+    private function entraHint(): string
+    {
+        return $this->auth->isEntra()
+            ? ' ' . __('For an Entra application: it must be added as a user of the Azure DevOps organization (Organization settings > Users) and have access to this project.', 'azuredevops')
+            : '';
     }
 
     // ------------------------------------------------------------- connection

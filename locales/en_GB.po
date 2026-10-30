@@ -8,9 +8,21 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#: src/AdoAuth.php
+msgid "The tenant, the application (client) ID or the client secret is not configured."
+msgstr "The tenant, the application (client) ID or the client secret is not configured."
+
+#: src/AdoAuth.php
+msgid "Cannot reach Microsoft Entra: %s"
+msgstr "Cannot reach Microsoft Entra: %s"
+
+#: src/AdoAuth.php
+msgid "Microsoft Entra did not give an access token (HTTP %1$d)%2$s"
+msgstr "Microsoft Entra did not give an access token (HTTP %1$d)%2$s"
+
 #: src/AdoClient.php
-msgid "The organization, the project or the access token is not configured."
-msgstr "The organization, the project or the access token is not configured."
+msgid "The organization, the project or the credentials (access token, or Entra application) are not configured."
+msgstr "The organization, the project or the credentials (access token, or Entra application) are not configured."
 
 #: src/AdoClient.php
 msgid "Cannot reach Azure DevOps: %s"
@@ -43,6 +55,10 @@ msgstr "Azure DevOps server error (HTTP %d)"
 #: src/AdoClient.php
 msgid "Azure DevOps rejected the request (HTTP %d)%s"
 msgstr "Azure DevOps rejected the request (HTTP %d)%s"
+
+#: src/AdoClient.php
+msgid "For an Entra application: it must be added as a user of the Azure DevOps organization (Organization settings > Users) and have access to this project."
+msgstr "For an Entra application: it must be added as a user of the Azure DevOps organization (Organization settings > Users) and have access to this project."
 
 #: src/AdoClient.php
 msgid "Azure DevOps did not return the project."
@@ -303,6 +319,10 @@ msgid "The access token is required."
 msgstr "The access token is required."
 
 #: src/Project.php
+msgid "The tenant ID, the application (client) ID and the client secret are required."
+msgstr "The tenant ID, the application (client) ID and the client secret are required."
+
+#: src/Project.php
 msgid "Tickets are linked to this project: it cannot be deleted. Deactivate it instead."
 msgstr "Tickets are linked to this project: it cannot be deleted. Deactivate it instead."
 
@@ -381,8 +401,20 @@ msgid "Work item type"
 msgstr "Work item type"
 
 #: templates/config.html.twig
+msgid "Authentication"
+msgstr "Authentication"
+
+#: templates/config.html.twig
 msgid "Who can use it"
 msgstr "Who can use it"
+
+#: templates/config.html.twig
+msgid "Entra application"
+msgstr "Entra application"
+
+#: templates/config.html.twig
+msgid "Personal token"
+msgstr "Personal token"
 
 #: templates/config.html.twig
 msgid "Every technician with the \"create\" right"
@@ -521,6 +553,14 @@ msgid "Leave https://dev.azure.com for Azure DevOps Services."
 msgstr "Leave https://dev.azure.com for Azure DevOps Services."
 
 #: templates/config.html.twig
+msgid "Microsoft Entra sign-in address"
+msgstr "Microsoft Entra sign-in address"
+
+#: templates/config.html.twig
+msgid "Where the Entra applications of the projects sign in. Leave https://login.microsoftonline.com except for a sovereign cloud."
+msgstr "Where the Entra applications of the projects sign in. Leave https://login.microsoftonline.com except for a sovereign cloud."
+
+#: templates/config.html.twig
 msgid "Rights by profile"
 msgstr "Rights by profile"
 
@@ -569,6 +609,18 @@ msgid "Project name in Azure DevOps"
 msgstr "Project name in Azure DevOps"
 
 #: templates/project.html.twig
+msgid "Personal access token (PAT)"
+msgstr "Personal access token (PAT)"
+
+#: templates/project.html.twig
+msgid "Microsoft Entra application (service principal)"
+msgstr "Microsoft Entra application (service principal)"
+
+#: templates/project.html.twig
+msgid "A personal access token belongs to a person: it stops working when that account is disabled or the token expires. An Entra application is not tied to anybody."
+msgstr "A personal access token belongs to a person: it stops working when that account is disabled or the token expires. An Entra application is not tied to anybody."
+
+#: templates/project.html.twig
 msgid "Access token (PAT)"
 msgstr "Access token (PAT)"
 
@@ -577,8 +629,32 @@ msgid "(unchanged)"
 msgstr "(unchanged)"
 
 #: templates/project.html.twig
-msgid "A personal access token with the \"Work Items (Read & write)\" scope, whose owner can work on this project. It is stored encrypted, never shown again, and used only for this project."
-msgstr "A personal access token with the \"Work Items (Read & write)\" scope, whose owner can work on this project. It is stored encrypted, never shown again, and used only for this project."
+msgid "A personal access token with the \"Work Items (Read & write)\" and \"Project and Team (Read)\" scopes, whose owner can work on this project. It is stored encrypted, never shown again, and used only for this project."
+msgstr "A personal access token with the \"Work Items (Read & write)\" and \"Project and Team (Read)\" scopes, whose owner can work on this project. It is stored encrypted, never shown again, and used only for this project."
+
+#: templates/project.html.twig
+msgid "Tenant ID"
+msgstr "Tenant ID"
+
+#: templates/project.html.twig
+msgid "The directory (tenant) ID, or its domain name."
+msgstr "The directory (tenant) ID, or its domain name."
+
+#: templates/project.html.twig
+msgid "Application (client) ID"
+msgstr "Application (client) ID"
+
+#: templates/project.html.twig
+msgid "Client secret"
+msgstr "Client secret"
+
+#: templates/project.html.twig
+msgid "The secret value (not its ID). It is stored encrypted, never shown again, and used only for this project."
+msgstr "The secret value (not its ID). It is stored encrypted, never shown again, and used only for this project."
+
+#: templates/project.html.twig
+msgid "Before it can work, the application must be registered in Microsoft Entra ID and added to Azure DevOps as a user: Organization settings > Users > Add users (access level Basic), then give it access to the project (for example as a member of its Contributors group). The organization must be connected to the same Entra tenant."
+msgstr "Before it can work, the application must be registered in Microsoft Entra ID and added to Azure DevOps as a user: Organization settings > Users > Add users (access level Basic), then give it access to the project (for example as a member of its Contributors group). The organization must be connected to the same Entra tenant."
 
 #: templates/project.html.twig
 msgid "An inactive project cannot be chosen, and its work items are not checked."
