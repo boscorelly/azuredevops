@@ -82,7 +82,7 @@
             {% endif %}
 
             <div class="mb-3">
-                <label class="form-label" for="ado_type">{{ __('Type of work item to create', 'azuredevops') }}</label>
+                <label class="form-label" for="ado_type">{{ __('Default type of work item', 'azuredevops') }}</label>
                 {% if types is not empty %}
                     {% set opts = types %}
                     {% if project.workitem_type and project.workitem_type not in opts %}{% set opts = opts|merge([project.workitem_type]) %}{% endif %}
@@ -93,7 +93,21 @@
                 {% else %}
                     <input id="ado_type" type="text" name="workitem_type" class="form-control" value="{{ project.workitem_type }}" placeholder="User Story">
                 {% endif %}
-                <div class="form-text">{{ __('For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). Its closure is what solves the ticket.', 'azuredevops') }}</div>
+                <div class="form-text">{{ __('Created when the technician does not choose another type. For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). The closure of the work items that are not of a "followup only" type is what solves the ticket.', 'azuredevops') }}</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="ado_offered">{{ __('Other types the technician can choose in the ticket', 'azuredevops') }}</label>
+                {% if types is not empty %}
+                    {% set opts = types %}
+                    {% for t in offered_types %}{% if t not in opts %}{% set opts = opts|merge([t]) %}{% endif %}{% endfor %}
+                    <select id="ado_offered" name="offered_types[]" class="form-select" multiple>
+                        {% for t in opts %}<option value="{{ t }}" {{ t in offered_types ? 'selected' }}>{{ t }}</option>{% endfor %}
+                    </select>
+                {% else %}
+                    <input id="ado_offered" type="text" name="offered_types" class="form-control" value="{{ project.offered_types }}" placeholder="Bug">
+                {% endif %}
+                <div class="form-text">{{ __('For example Bug next to User Story. The technician chooses the type in the ticket, among the default type and these ones (the types come from Azure DevOps). Each type has its own required fields, listed below after "Save and test the connection". Leave empty to offer only the default type.', 'azuredevops') }}</div>
             </div>
 
             <div class="mb-3">
@@ -148,12 +162,12 @@
             <div class="mb-3">
                 <label class="form-label" for="ado_fields">{{ __('Default fields', 'azuredevops') }}</label>
                 <textarea id="ado_fields" name="default_fields" class="form-control font-monospace" rows="4" placeholder="Microsoft.VSTS.Common.Priority = {priority}">{{ project.default_fields }}</textarea>
-                <div class="form-text">{{ __('Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value. Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored.', 'azuredevops') }}</div>
+                <div class="form-text">{{ __('Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored.', 'azuredevops') }}</div>
             </div>
 
-            {% if required_fields is not empty %}
+            {% for type_name, required_fields in required_by_type %}{% if required_fields is not empty %}
                 <div class="mb-3">
-                    <label class="form-label">{{ __('Fields required by the process for this type', 'azuredevops') }}</label>
+                    <label class="form-label">{{ __('Fields required by the process for the type', 'azuredevops') }} <strong>{{ type_name }}</strong></label>
                     <div class="table-responsive">
                         <table class="table table-sm table-vcenter">
                             <thead>
@@ -176,8 +190,11 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="form-text">{{ __('Read from Azure DevOps at the last "Save and test the connection". Use the reference name in the default fields, with one of the allowed values.', 'azuredevops') }}</div>
                 </div>
+            {% endif %}{% endfor %}
+            {% set any_required = false %}{% for t, fl in required_by_type %}{% if fl is not empty %}{% set any_required = true %}{% endif %}{% endfor %}
+            {% if any_required %}
+                <div class="form-text mb-3">{{ __('Read from Azure DevOps at the last "Save and test the connection". The technician chooses these values in the ticket; give them a default here (one of the allowed values).', 'azuredevops') }}</div>
             {% endif %}
         </div>
     </div>
@@ -246,7 +263,7 @@
         };
         $('#ado_groups').select2(search({{ search_groups_url|json_encode|raw }}, {{ __('Search a group…', 'azuredevops')|json_encode|raw }}));
         $('#ado_users').select2(search({{ search_users_url|json_encode|raw }}, {{ __('Search a user…', 'azuredevops')|json_encode|raw }}));
-        $('#ado_parents, #ado_fonly').select2({width: '100%'});
+        $('#ado_parents, #ado_fonly, #ado_offered').select2({width: '100%'});
     });
 </script>
 {% endblock %}

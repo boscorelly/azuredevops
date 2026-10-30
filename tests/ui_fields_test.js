@@ -3,15 +3,23 @@
 const fs = require('fs');
 const { JSDOM } = require('jsdom');
 const html = fs.readFileSync(process.argv[2], 'utf8');
-const options = [...html.matchAll(/<option value="(\d+)" data-type="([^"]*)" data-parents="(\d)">([^<]*)<\/option>/g)].map(m => ({id: m[1], name: m[4]}));
+const options = [...html.matchAll(/<option value="(\d+)" data-parents="(\d)">([^<]*)<\/option>/g)].map(m => ({id: m[1], name: m[3]}));
 const byName = Object.fromEntries(options.map(o => [o.name, o.id]));
 const data = {};
-data[byName['Tata']] = [
-  {ref: 'Microsoft.VSTS.Common.Priority', name: 'Priorité', allowed: ['1','2','3','4'], value: '2'},
-  {ref: 'Custom.Note', name: '<img src=x onerror=alert(1)>Note', allowed: [], value: 'abc "q"'},
-];
-data[byName['Toto']] = [];
-let page = html.replace(/data-fields="[^"]*"/, 'data-fields="' + JSON.stringify(data).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '"');
+data[byName['Tata']] = {
+  'default': 'Issue', types: ['Issue', 'Bug'],
+  fields: {
+    'Issue': [
+      {ref: 'Microsoft.VSTS.Common.Priority', name: 'Priorité', allowed: ['1','2','3','4'], value: '2'},
+      {ref: 'Custom.Note', name: '<img src=x onerror=alert(1)>Note', allowed: [], value: 'abc "q"'},
+    ],
+    'Bug': [
+      {ref: 'Microsoft.VSTS.Common.Severity', name: 'Severity', allowed: ['1 - Critical','2 - High'], value: '2 - High'},
+    ],
+  },
+};
+data[byName['Toto']] = {'default': 'User Story', types: ['User Story'], fields: {'User Story': []}};
+let page = html.replace(/data-config="[^"]*"/, 'data-config="' + JSON.stringify(data).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '"');
 const dom = new JSDOM('<body>' + page + '</body>', {runScripts: 'outside-only', url: 'http://localhost/'});
 const w = dom.window;
 w.eval(fs.readFileSync(require.resolve('jquery'), 'utf8'));
@@ -38,7 +46,15 @@ const note = box.find('input[name="fields[Custom.Note]"]');
 t('a field without list is a text box with its value (quotes kept)', note.length === 1 && note.val() === 'abc "q"', note.length + ' ' + note.val());
 t('the title of the section is shown', !title.hasClass('d-none'));
 t('a field name is displayed as text, never as HTML (no injection)', box.find('img').length === 0 && box.find('label').eq(1).text().includes('<img'), box.html());
+const typeSel = $('select[id^=ado_wtype_]');
+t('Tata: the types of the project are offered, the default one selected', typeSel.find('option').map((i, o) => o.value).get().join() === 'Issue,Bug' && typeSel.val() === 'Issue', typeSel.html());
+typeSel.val('Bug').trigger('change');
+t('choosing another type shows the fields of that type', box.find('select[name="fields[Microsoft.VSTS.Common.Severity]"]').length === 1 && box.find('select[name="fields[Microsoft.VSTS.Common.Priority]"]').length === 0 && box.find('input[type=text]').length === 0, box.html());
+t('with the preselected value of that type', box.find('select').val() === '2 - High');
+typeSel.val('Issue').trigger('change');
+t('back to the first type: its fields are back', box.find('select[name="fields[Microsoft.VSTS.Common.Priority]"]').length === 1);
 pick(byName['Toto']);
+t('switching project resets the type list to that project', typeSel.find('option').map((i, o) => o.value).get().join() === 'User Story' && typeSel.val() === 'User Story');
 t('switching to a project without required field clears them', box.children().length === 0 && title.hasClass('d-none'));
 pick(byName['Tata']);
 t('back to Tata: they come back, nothing duplicated', box.find('select').length === 1 && box.find('input[type=text]').length === 1);

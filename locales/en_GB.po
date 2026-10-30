@@ -253,16 +253,12 @@ msgid "You are not allowed to use this project."
 msgstr "You are not allowed to use this project."
 
 #: src/Link.php
-msgid "No work item type is configured for this project."
-msgstr "No work item type is configured for this project."
-
-#: src/Link.php
 msgid "Another creation is in progress for this ticket, try again in a moment."
 msgstr "Another creation is in progress for this ticket, try again in a moment."
 
 #: src/Link.php
-msgid "This ticket already has an open work item created in this project."
-msgstr "This ticket already has an open work item created in this project."
+msgid "This ticket already has an open work item of type \"%s\" created in this project."
+msgstr "This ticket already has an open work item of type \"%s\" created in this project."
 
 #: src/Link.php
 msgid "The parent work item #%d was not found."
@@ -327,8 +323,8 @@ msgid "The organization and the Azure DevOps project name are required."
 msgstr "The organization and the Azure DevOps project name are required."
 
 #: src/Project.php
-msgid "Invalid line in the default fields (expected \"Reference.Name = value\", and not System.Title or System.Description): %s"
-msgstr "Invalid line in the default fields (expected \"Reference.Name = value\", and not System.Title or System.Description): %s"
+msgid "Invalid line in the default fields (expected \"Reference.Name = value\" or \"Type: Reference.Name = value\", and not System.Title or System.Description): %s"
+msgstr "Invalid line in the default fields (expected \"Reference.Name = value\" or \"Type: Reference.Name = value\", and not System.Title or System.Description): %s"
 
 #: src/Project.php
 msgid "The access token is required."
@@ -341,6 +337,14 @@ msgstr "The tenant ID, the application (client) ID and the client secret are req
 #: src/Project.php
 msgid "Tickets are linked to this project: it cannot be deleted. Deactivate it instead."
 msgstr "Tickets are linked to this project: it cannot be deleted. Deactivate it instead."
+
+#: src/Project.php
+msgid "No work item type is configured for this project."
+msgstr "No work item type is configured for this project."
+
+#: src/Project.php
+msgid "This type of work item cannot be created from a ticket in this project: %s"
+msgstr "This type of work item cannot be created from a ticket in this project: %s"
 
 #: src/Project.php
 msgid "Azure DevOps project"
@@ -685,12 +689,20 @@ msgid "Save with \"Save and test the connection\" to read the work item types of
 msgstr "Save with \"Save and test the connection\" to read the work item types of the project: they can then be chosen from a list."
 
 #: templates/project.html.twig
-msgid "Type of work item to create"
-msgstr "Type of work item to create"
+msgid "Default type of work item"
+msgstr "Default type of work item"
 
 #: templates/project.html.twig
-msgid "For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). Its closure is what solves the ticket."
-msgstr "For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). Its closure is what solves the ticket."
+msgid "Created when the technician does not choose another type. For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). The closure of the work items that are not of a \"followup only\" type is what solves the ticket."
+msgstr "Created when the technician does not choose another type. For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). The closure of the work items that are not of a \"followup only\" type is what solves the ticket."
+
+#: templates/project.html.twig
+msgid "Other types the technician can choose in the ticket"
+msgstr "Other types the technician can choose in the ticket"
+
+#: templates/project.html.twig
+msgid "For example Bug next to User Story. The technician chooses the type in the ticket, among the default type and these ones (the types come from Azure DevOps). Each type has its own required fields, listed below after \"Save and test the connection\". Leave empty to offer only the default type."
+msgstr "For example Bug next to User Story. The technician chooses the type in the ticket, among the default type and these ones (the types come from Azure DevOps). Each type has its own required fields, listed below after \"Save and test the connection\". Leave empty to offer only the default type."
 
 #: templates/project.html.twig
 msgid "Types that can be the parent of a new work item"
@@ -737,12 +749,12 @@ msgid "Default fields"
 msgstr "Default fields"
 
 #: templates/project.html.twig
-msgid "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value. Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored."
-msgstr "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value. Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored."
+msgid "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored."
+msgstr "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored."
 
 #: templates/project.html.twig
-msgid "Fields required by the process for this type"
-msgstr "Fields required by the process for this type"
+msgid "Fields required by the process for the type"
+msgstr "Fields required by the process for the type"
 
 #: templates/project.html.twig
 msgid "Reference name"
@@ -761,8 +773,8 @@ msgid "Needs a value"
 msgstr "Needs a value"
 
 #: templates/project.html.twig
-msgid "Read from Azure DevOps at the last \"Save and test the connection\". Use the reference name in the default fields, with one of the allowed values."
-msgstr "Read from Azure DevOps at the last \"Save and test the connection\". Use the reference name in the default fields, with one of the allowed values."
+msgid "Read from Azure DevOps at the last \"Save and test the connection\". The technician chooses these values in the ticket; give them a default here (one of the allowed values)."
+msgstr "Read from Azure DevOps at the last \"Save and test the connection\". The technician chooses these values in the ticket; give them a default here (one of the allowed values)."
 
 #: templates/project.html.twig
 msgid "Who can use this project"
@@ -849,6 +861,10 @@ msgid "Project"
 msgstr "Project"
 
 #: templates/ticket_tab.html.twig
+msgid "Type"
+msgstr "Type"
+
+#: templates/ticket_tab.html.twig
 msgid "Under (Epic, Feature…)"
 msgstr "Under (Epic, Feature…)"
 
@@ -875,14 +891,6 @@ msgstr "Additional tags"
 #: templates/ticket_tab.html.twig
 msgid "Required by the process"
 msgstr "Required by the process"
-
-#: templates/ticket_tab.html.twig
-msgid "A work item of type"
-msgstr "A work item of type"
-
-#: templates/ticket_tab.html.twig
-msgid "will be created."
-msgstr "will be created."
 
 #: templates/ticket_tab.html.twig
 msgid "Inform the requester with a public followup"

@@ -44,7 +44,9 @@ final class WorkItemController extends AbstractController
                 (string) $request->request->get('followup', ''),
                 $request->request->has('notify_requester') ? $request->request->getBoolean('notify_requester') : null,
                 // Fields the process requires (Priority...), chosen in the form
-                array_filter((array) $request->request->all('fields'), 'is_scalar')
+                array_filter((array) $request->request->all('fields'), 'is_scalar'),
+                // The type chosen in the ticket (empty = the project's default type)
+                (string) $request->request->get('work_item_type', '')
             );
             $this->flashCreated(__('Azure DevOps work item created: %s', 'azuredevops'), $res['link']);
             $this->flashWarnings($res['warnings']);
@@ -136,7 +138,7 @@ final class WorkItemController extends AbstractController
 
         $types = Project::csv($project['parent_types']);
         if ($request->query->get('scope') === 'items') {
-            $types = Project::csv(implode(',', array_merge($types, [(string) $project['workitem_type']])));
+            $types = Project::csv(implode(',', array_merge($types, Project::offeredTypes($project))));
         }
 
         try {

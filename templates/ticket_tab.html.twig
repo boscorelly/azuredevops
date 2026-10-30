@@ -87,7 +87,7 @@
     {% elseif can_create %}
         {% set rand = random() %}
         <form method="post" action="{{ base }}/Ticket/{{ ticket_id }}/WorkItem" class="card-footer" id="ado_create_{{ rand }}"
-              data-fields="{{ fields_by_project|json_encode|e('html_attr') }}">
+              data-config="{{ config|json_encode|e('html_attr') }}">
             <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
             <h4 class="mb-2">{{ __('Create a work item', 'azuredevops') }}</h4>
             <div class="row g-2 align-items-end">
@@ -95,11 +95,15 @@
                     <label class="form-label" for="ado_cp_{{ rand }}">{{ __('Project', 'azuredevops') }}</label>
                     <select id="ado_cp_{{ rand }}" name="project_id" class="form-select" required>
                         {% for p in projects %}{% if p.ready %}
-                            <option value="{{ p.id }}" data-type="{{ p.type }}" data-parents="{{ p.has_parents ? 1 : 0 }}">{{ p.name }}</option>
+                            <option value="{{ p.id }}" data-parents="{{ p.has_parents ? 1 : 0 }}">{{ p.name }}</option>
                         {% endif %}{% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
+                    <label class="form-label" for="ado_wtype_{{ rand }}">{{ __('Type', 'azuredevops') }}</label>
+                    <select id="ado_wtype_{{ rand }}" name="work_item_type" class="form-select"></select>
+                </div>
+                <div class="col-md-3">
                     <label class="form-label" for="ado_parent_{{ rand }}">{{ __('Under (Epic, Feature…)', 'azuredevops') }}</label>
                     <select id="ado_parent_{{ rand }}" name="parent_id" class="form-select" style="width:100%"><option></option></select>
                 </div>
@@ -111,14 +115,13 @@
                         <option value="none" {{ default_followup == 'none' ? 'selected' }}>{{ __('None', 'azuredevops') }}</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label" for="ado_tags_{{ rand }}">{{ __('Additional tags', 'azuredevops') }}</label>
                     <input id="ado_tags_{{ rand }}" type="text" name="tags" class="form-control">
                 </div>
             </div>
             <div id="ado_fields_title_{{ rand }}" class="mt-3 d-none"><span class="form-label">{{ __('Required by the process', 'azuredevops') }}</span></div>
             <div id="ado_fields_{{ rand }}" class="row g-2 mb-1"></div>
-            <div class="text-muted small mt-2">{{ __('A work item of type', 'azuredevops') }} <strong id="ado_type_{{ rand }}"></strong> {{ __('will be created.', 'azuredevops') }}</div>
             <input type="hidden" name="notify_requester" value="0">
             <label class="form-check mt-2">
                 <input class="form-check-input" type="checkbox" name="notify_requester" value="1" {{ default_notify ? 'checked' }}>
@@ -191,11 +194,13 @@
                 finder($cp, 'parents', $parent, {{ __('No parent', 'azuredevops')|json_encode|raw }}, true);
                 finder($lp, 'items', $item, {{ __('Search a work item…', 'azuredevops')|json_encode|raw }}, false);
 
-                // The fields the process requires (Priority...) for the chosen project, with their allowed values
-                var fieldsByProject = {};
-                try { fieldsByProject = JSON.parse($('#ado_create_{{ rand }}').attr('data-fields') || '{}'); } catch (e) { fieldsByProject = {}; }
+                // What the form needs for each project: its types, the default one, and the fields the process requires per type
+                var config = {};
+                try { config = JSON.parse($('#ado_create_{{ rand }}').attr('data-config') || '{}'); } catch (e) { config = {}; }
+                var $type = $('#ado_wtype_{{ rand }}');
+
                 function renderFields() {
-                    var list = fieldsByProject[$cp.val()] || [], $box = $('#ado_fields_{{ rand }}').empty();
+                    var project = config[$cp.val()] || {}, list = ((project.fields || {})[$type.val()]) || [], $box = $('#ado_fields_{{ rand }}').empty();
                     $.each(list, function (i, f) {
                         var id = 'ado_f_{{ rand }}_' + i, name = 'fields[' + f.ref + ']', $input;
                         if (f.allowed && f.allowed.length) {
@@ -210,12 +215,20 @@
                     $('#ado_fields_title_{{ rand }}').toggleClass('d-none', list.length === 0);
                 }
 
+                // The types of the chosen project, the default one selected
+                function renderTypes() {
+                    var project = config[$cp.val()] || {types: [], 'default': ''};
+                    $type.empty();
+                    $.each(project.types || [], function (i, t) { $type.append($('<option></option>').val(t).text(t).prop('selected', t === project['default'])); });
+                }
+
                 function syncCreate() {
                     var $o = $cp.find('option:selected');
-                    $('#ado_type_{{ rand }}').text($o.data('type') || '');
                     $parent.val(null).trigger('change').prop('disabled', $o.data('parents') != 1);
+                    renderTypes();
                     renderFields();
                 }
+                $type.on('change', renderFields);
                 $cp.on('change', syncCreate);
                 $lp.on('change', function () { $item.val(null).trigger('change'); });
                 syncCreate();

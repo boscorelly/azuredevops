@@ -27,13 +27,15 @@ final class ItemBuilder
 
     /**
      * @param array<string, mixed>  $project glpi_plugin_azuredevops_projects row
+     * @param string|null           $type          work item type to create (null = the project's default)
      * @param array<string, string> $chosen_fields values chosen by the technician for the fields the process requires
      *                                             (already checked by validateFields()); they win over the project's defaults
      *
      * @return array{type: string, fields: array<string, mixed>, relations: array<int, array<string, mixed>>, warnings: string[]}
      */
-    public function build(Ticket $ticket, array $project, int $parent_id, string $extra_tags, int $creator_id, array $chosen_fields = []): array
+    public function build(Ticket $ticket, array $project, int $parent_id, string $extra_tags, int $creator_id, array $chosen_fields = [], ?string $type = null): array
     {
+        $type = Project::resolveType($project, $type);
         $settings = Settings::all();
         $warnings = [];
 
@@ -67,7 +69,7 @@ final class ItemBuilder
             $fields['System.AreaPath'] = (string) $project['area_path'];
         }
         // Fields required by the process (Priority...): the project's defaults, then what the technician chose.
-        foreach (Project::defaultFields($project) as $reference => $value) {
+        foreach (Project::defaultFields($project, $type) as $reference => $value) {
             $fields[$reference] = self::resolve($value, $ticket);
         }
         foreach ($chosen_fields as $reference => $value) {
@@ -95,7 +97,7 @@ final class ItemBuilder
             $relations[] = ['rel' => 'AttachedFile', 'url' => $doc['url'], 'attributes' => ['comment' => $doc['name']]];
         }
 
-        return ['type' => (string) $project['workitem_type'], 'fields' => $fields, 'relations' => $relations, 'warnings' => $warnings];
+        return ['type' => $type, 'fields' => $fields, 'relations' => $relations, 'warnings' => $warnings];
     }
 
     // ------------------------------------------------------------------ pieces
@@ -113,7 +115,7 @@ final class ItemBuilder
     }
 
     /**
-     * The fields the process requires for the type to create, as offered in the creation form: each with the values it
+     * The fields the process requires for a type, as offered in the creation form: each with the values it
      * is limited to and the value to preselect: the project's default (placeholders resolved for this ticket), else the
      * process's own default, else, for the Priority, the one matching the priority of the ticket.
      *
@@ -121,11 +123,11 @@ final class ItemBuilder
      *
      * @return array<int, array{ref: string, name: string, allowed: string[], value: string}>
      */
-    public static function formFields(array $project, Ticket $ticket): array
+    public static function formFields(array $project, Ticket $ticket, ?string $type = null): array
     {
-        $configured = array_change_key_case(Project::defaultFields($project), CASE_LOWER);
+        $configured = array_change_key_case(Project::defaultFields($project, $type), CASE_LOWER);
         $out        = [];
-        foreach (Project::requiredFields($project) as $field) {
+        foreach (Project::requiredFields($project, $type) as $field) {
             $value = '';
             if (isset($configured[strtolower($field['ref'])])) {
                 $value = self::resolve($configured[strtolower($field['ref'])], $ticket);
@@ -154,10 +156,10 @@ final class ItemBuilder
      *
      * @throws \RuntimeException
      */
-    public static function validateFields(array $project, array $submitted): array
+    public static function validateFields(array $project, array $submitted, ?string $type = null): array
     {
         $known = [];
-        foreach (Project::requiredFields($project) as $field) {
+        foreach (Project::requiredFields($project, $type) as $field) {
             $known[strtolower($field['ref'])] = $field;
         }
 

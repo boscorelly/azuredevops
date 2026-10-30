@@ -198,17 +198,21 @@ class Link extends CommonDBTM
         }
         $hidden = countElementsInTable(self::getTable(), ['tickets_id' => $ticket->getID()]) - count($visible);
 
-        $projects          = [];
-        $fields_by_project = [];
+        $projects = [];
+        $config   = [];   // what the creation form needs for each project: its types, the default one and the fields of each type
         foreach (ProjectAccess::projectsForUser($users_id) as $project) {
-            $fields_by_project[(int) $project['id']] = ItemBuilder::formFields($project, $ticket);
+            $types  = Project::offeredTypes($project);
+            $fields = [];
+            foreach ($types as $type) {
+                $fields[$type] = ItemBuilder::formFields($project, $ticket, $type);
+            }
+            $config[(int) $project['id']] = ['default' => Project::defaultType($project), 'types' => $types, 'fields' => $fields];
             $projects[] = [
                 'id'            => (int) $project['id'],
                 'name'          => $project['name'],
-                'type'          => $project['workitem_type'],
                 'has_parents'   => Project::csv($project['parent_types']) !== [],
                 'parent_types'  => implode(', ', Project::csv($project['parent_types'])),
-                'ready'         => $project['workitem_type'] !== '',
+                'ready'         => $types !== [],
             ];
         }
 
@@ -217,7 +221,7 @@ class Link extends CommonDBTM
             'links'            => $links,
             'hidden_count'     => max(0, $hidden),
             'projects'         => $projects,
-            'fields_by_project' => $fields_by_project,
+            'config'           => $config,
             'any_project'      => Project::all(true) !== [],
             'can_create'       => $projects !== [] && self::canCreate(),
             'can_update'       => self::canUpdate(),
@@ -271,6 +275,7 @@ class Link extends CommonDBTM
      * @param string|null $followup   'private', 'public' or 'none'; null = use the plugin settings
      * @param bool|null   $notify_requester add the neutral public message for the requester; null = use the plugin settings
      * @param array<string, mixed> $fields values chosen for the fields the process requires (reference name => value)
+     * @param string|null $type    work item type to create; null = the project's default type
      *
      * @return array{link: Link, warnings: string[]}
      *
@@ -286,16 +291,16 @@ class Link extends CommonDBTM
         ?string $followup = null,
         ?bool $notify_requester = null,
         array $fields = [],
+        ?string $type = null,
     ): array {
         /** @var \DBmysql $DB */
         global $DB;
 
         $project = self::usableProject($projects_id, $users_id);
-        if (trim((string) $project['workitem_type']) === '') {
-            throw new RuntimeException(__('No work item type is configured for this project.', 'azuredevops'));
-        }
+        // The type chosen in the ticket (it must be one the project offers), else the project's default type.
+        $type = Project::resolveType($project, $type);
         // Values chosen in the form for the fields the process requires: checked before anything is sent.
-        $chosen_fields = ItemBuilder::validateFields($project, $fields);
+        $chosen_fields = ItemBuilder::validateFields($project, $fields, $type);
 
         // Serialise concurrent creations for the same ticket (double click, two technicians).
         $lock = 'azuredevops_ticket_' . $ticket->getID();
@@ -311,10 +316,11 @@ class Link extends CommonDBTM
                     'tickets_id'  => $ticket->getID(),
                     'projects_id' => $projects_id,
                     'is_created'  => 1,
+                    'workitem_type' => $type,
                     'state'       => self::STATE_OPENED,
                 ]) > 0
             ) {
-                throw new RuntimeException(__('This ticket already has an open work item created in this project.', 'azuredevops'));
+                throw new RuntimeException(sprintf(__('This ticket already has an open work item of type "%s" created in this project.', 'azuredevops'), $type));
             }
 
             $client = Project::client($project);
@@ -333,7 +339,7 @@ class Link extends CommonDBTM
                 }
             }
 
-            $payload = (new ItemBuilder($client))->build($ticket, $project, $parent_id, $extra_tags, $users_id, $chosen_fields);
+            $payload = (new ItemBuilder($client))->build($ticket, $project, $parent_id, $extra_tags, $users_id, $chosen_fields, $type);
             $item    = $client->createWorkItem($payload['type'], $payload['fields'], $payload['relations']);
 
             $chain = [];

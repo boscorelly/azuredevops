@@ -40,7 +40,7 @@ final class ConfigController extends AbstractController
                 'id'           => (int) $project['id'],
                 'name'         => $project['name'],
                 'target'       => $project['organization'] . ' / ' . $project['ado_project'],
-                'type'         => $project['workitem_type'],
+                'type'         => implode(', ', Project::offeredTypes($project)),
                 'auth'         => $project['auth_mode'] ?? 'pat',
                 'is_active'    => (bool) $project['is_active'],
                 'is_restricted' => (bool) $project['is_restricted'],
@@ -222,7 +222,7 @@ final class ConfigController extends AbstractController
             'id' => 0, 'name' => '', 'organization' => '', 'ado_project' => '', 'is_active' => 1, 'is_restricted' => 1,
             'workitem_type' => '', 'parent_types' => 'Epic,Feature', 'followup_only_types' => 'Epic,Feature',
             'done_categories' => 'Completed', 'area_path' => '', 'default_tags' => 'glpi', 'last_error' => null,
-            'auth_mode' => 'pat', 'tenant_id' => '', 'client_id' => '', 'default_fields' => '',
+            'auth_mode' => 'pat', 'tenant_id' => '', 'client_id' => '', 'default_fields' => '', 'offered_types' => '',
         ];
         $row = ($project ?? []) + $defaults;
         $id  = (int) $row['id'];
@@ -236,7 +236,8 @@ final class ConfigController extends AbstractController
             'is_new'    => $project === null,
             'has_token' => $has_token,
             'has_secret' => $has_secret,
-            'required_fields' => $project !== null ? Project::requiredFields($project) : [],
+            'required_by_type' => $project !== null ? Project::requiredFieldsByType($project) : [],
+            'offered_types'   => Project::csv($row['offered_types']),
             'types'     => $project !== null ? Project::typeNames($project) : [],
             'parent_types'  => Project::csv($row['parent_types']),
             'followup_only_types' => Project::csv($row['followup_only_types']),

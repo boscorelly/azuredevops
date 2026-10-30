@@ -36,9 +36,10 @@ PROJECTS = {
             'Epic':       {'states': [('New', 'Proposed'), ('Active', 'InProgress'), ('Closed', 'Completed'), ('Removed', 'Removed')]},
             'Feature':    {'states': [('New', 'Proposed'), ('Active', 'InProgress'), ('Resolved', 'Resolved'), ('Closed', 'Completed'), ('Removed', 'Removed')]},
             'User Story': {'states': [('New', 'Proposed'), ('Active', 'InProgress'), ('Resolved', 'Resolved'), ('Closed', 'Completed'), ('Removed', 'Removed')]},
+            'Bug':        {'states': [('New', 'Proposed'), ('Active', 'InProgress'), ('Resolved', 'Resolved'), ('Closed', 'Completed'), ('Removed', 'Removed')]},
             'Task':       {'states': [('New', 'Proposed'), ('Active', 'InProgress'), ('Closed', 'Completed'), ('Removed', 'Removed')]},
         },
-        'hierarchy': {'Feature': ['Epic'], 'User Story': ['Feature', 'Epic'], 'Task': ['User Story']},
+        'hierarchy': {'Feature': ['Epic'], 'User Story': ['Feature', 'Epic'], 'Bug': ['Feature', 'Epic'], 'Task': ['User Story', 'Bug']},
         'states_in_list': True, 'closed_fields': True,
     },
     'Tata': {

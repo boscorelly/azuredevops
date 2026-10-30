@@ -22,7 +22,8 @@ Testé sur **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) contre un mock de l'API RES
 | Organisation / projet | `mon-organisation` (ou son URL) et le nom du projet Azure DevOps |
 | Authentification | **Jeton d'accès personnel (PAT)** ou **application Microsoft Entra** (voir ci-dessous) |
 | Jeton d'accès (PAT) | Un jeton d'accès personnel avec les portées **Work Items (Read & write)** et **Project and Team (Read)**, dont le propriétaire peut travailler sur le projet. Stocké **chiffré** (clé de GLPI), jamais ré-affiché, utilisé **uniquement pour ce projet** |
-| Type à créer | `User Story` (Agile), `Product Backlog Item` (Scrum), `Issue` (Basic)… à choisir parmi les types lus par *Enregistrer et tester la connexion* |
+| Type par défaut | `User Story` (Agile), `Product Backlog Item` (Scrum), `Issue` (Basic)… à choisir parmi les types lus par *Enregistrer et tester la connexion* : créé quand le technicien n'en choisit pas un autre |
+| Autres types proposés | Types que le technicien peut choisir dans le ticket (par exemple `Bug`), à prendre parmi ceux du projet ; vide = seulement le type par défaut |
 | Parents possibles | Types sous lesquels on peut créer un élément et que l'on peut lier (`Epic`, `Feature`…) |
 | Types « suivi uniquement » | Types (Epic, Feature…) dont la fin ajoute seulement un suivi privé et ne résout jamais le ticket |
 | Catégories « terminé » | `Completed` (toujours) et éventuellement `Resolved`. Les catégories viennent du modèle de processus : états et processus personnalisés fonctionnent sans configuration |
@@ -93,7 +94,7 @@ Un technicien ne **voit** que les liens des projets qu'il peut utiliser (une men
 
 Onglet **Azure DevOps** du ticket :
 
-- **Créer un élément de travail** : choisissez un projet, éventuellement un parent (Epic / Feature, recherché par titre ou numéro), des tags et le suivi (privé / public / aucun). L'élément contient les informations du ticket, la description (HTML), les images en ligne et les pièces jointes envoyées dans Azure DevOps, et un lien hypertexte vers le ticket.
+- **Créer un élément de travail** : choisissez un projet, le **type** d'élément (User Story, Bug… parmi ceux que le projet propose ; le type par défaut si vous n'y touchez pas), éventuellement un parent (Epic / Feature, recherché par titre ou numéro), des tags et le suivi (privé / public / aucun). L'élément contient les informations du ticket, la description (HTML), les images en ligne et les pièces jointes envoyées dans Azure DevOps, et un lien hypertexte vers le ticket.
 - **Lier un élément existant** : choisissez un projet et recherchez par titre ou numéro. Un même Epic peut être lié à plusieurs tickets.
 - L'onglet affiche la chaîne de parents (Epic › Feature), le type, l'état Azure DevOps et la dernière vérification.
 

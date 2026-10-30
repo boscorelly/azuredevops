@@ -22,7 +22,8 @@ Tested on **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) against a mock of the Azure 
 | Organization / project | `my-organization` (or its URL) and the Azure DevOps project name |
 | Authentication | **Personal access token (PAT)** or **Microsoft Entra application** (see below) |
 | Access token (PAT) | A personal access token with the **Work Items (Read & write)** and **Project and Team (Read)** scopes, whose owner can work on the project. Stored **encrypted** (GLPI's key), never shown again, used **only for this project** |
-| Type to create | `User Story` (Agile), `Product Backlog Item` (Scrum), `Issue` (Basic)… chosen from the types read by *Save and test the connection* |
+| Default type | `User Story` (Agile), `Product Backlog Item` (Scrum), `Issue` (Basic)… chosen from the types read by *Save and test the connection*: created when the technician does not choose another one |
+| Other types offered | Types the technician can choose in the ticket (for example `Bug`), picked among those of the project; empty = only the default type |
 | Possible parents | Types under which a work item can be created and that can be linked (`Epic`, `Feature`…) |
 | "Followup only" types | Types (Epic, Feature…) whose completion only adds a private followup and never solves the ticket |
 | Done categories | `Completed` (always) and optionally `Resolved`. Categories come from the process template, so custom states and processes work without configuration |
@@ -93,7 +94,7 @@ A technician only **sees** the links of the projects he may use (a note tells ho
 
 Ticket tab **Azure DevOps**:
 
-- **Create a work item**: pick a project, optionally a parent (Epic / Feature, searched by title or number), tags, and the followup (private / public / none). The work item contains the ticket details, the description (HTML), the inline images and the attachments uploaded to Azure DevOps, and a hyperlink back to the ticket.
+- **Create a work item**: pick a project, the **type** of work item (User Story, Bug… among those the project offers; the default type if you leave it), optionally a parent (Epic / Feature, searched by title or number), tags, and the followup (private / public / none). The work item contains the ticket details, the description (HTML), the inline images and the attachments uploaded to Azure DevOps, and a hyperlink back to the ticket.
 - **Link an existing work item**: pick a project and search by title or number. The same Epic can be linked to many tickets.
 - The tab shows the parent chain (Epic › Feature), the type, the Azure DevOps state and the last check.
 

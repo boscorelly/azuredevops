@@ -81,7 +81,7 @@ final class Project
         foreach (explode(',', (string) $value) as $item) {
             $item = trim($item);
             if ($item !== '') {
-                $items[mb_strtolower($item)] = $item;
+                $items[mb_strtolower($item)] ??= $item;   // the first spelling wins
             }
         }
 
@@ -209,10 +209,10 @@ final class Project
         };
 
         // Values for the fields the process requires ("Reference.Name = value", one per line)
-        [$default_fields, $bad_lines] = self::parseDefaultFields($str('default_fields'));
+        [$default_entries, $bad_lines] = self::parseDefaultFields($str('default_fields'));
         if ($bad_lines !== []) {
             throw new RuntimeException(sprintf(
-                __('Invalid line in the default fields (expected "Reference.Name = value", and not System.Title or System.Description): %s', 'azuredevops'),
+                __('Invalid line in the default fields (expected "Reference.Name = value" or "Type: Reference.Name = value", and not System.Title or System.Description): %s', 'azuredevops'),
                 mb_substr($bad_lines[0], 0, 120)
             ));
         }
@@ -224,12 +224,17 @@ final class Project
             'is_active'           => !empty($input['is_active']) ? 1 : 0,
             'is_restricted'       => !empty($input['is_restricted']) ? 1 : 0,
             'workitem_type'       => mb_substr($str('workitem_type'), 0, 128),
+            // Other types the technician can choose in the ticket (the default type is always offered)
+            'offered_types'       => mb_substr(implode(',', array_filter(
+                self::csv(implode(',', array_map('strval', (array) ($input['offered_types'] ?? explode(',', $str('offered_types')))))),
+                static fn(string $t): bool => strcasecmp($t, $str('workitem_type')) !== 0
+            )), 0, 512),
             'parent_types'        => mb_substr($list($input['parent_types'] ?? ''), 0, 255),
             'followup_only_types' => mb_substr($list($input['followup_only_types'] ?? ''), 0, 255),
             'done_categories'     => implode(',', $done),
             'area_path'           => $str('area_path') !== '' ? mb_substr($str('area_path'), 0, 512) : null,
             'default_tags'        => mb_substr($str('default_tags'), 0, 255),
-            'default_fields'      => $default_fields !== [] ? implode("\n", array_map(static fn($k, $v) => $k . ' = ' . $v, array_keys($default_fields), $default_fields)) : null,
+            'default_fields'      => $default_entries !== [] ? self::formatDefaultFields($default_entries) : null,
             'date_mod'            => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
         ];
 
@@ -321,51 +326,140 @@ final class Project
         $DB->delete(self::getTable(), ['id' => $id]);
     }
 
+    // ------------------------------------------------------ types to create
+
+    /**
+     * The type created when the technician does not choose one: the project's default type, else the first of the
+     * types offered in the ticket.
+     */
+    public static function defaultType(array $project): string
+    {
+        $type = trim((string) ($project['workitem_type'] ?? ''));
+
+        return $type !== '' ? $type : (self::csv($project['offered_types'] ?? '')[0] ?? '');
+    }
+
+    /**
+     * The types a technician can choose in the ticket: the default type first, then the others offered by the project.
+     *
+     * @return string[]
+     */
+    public static function offeredTypes(array $project): array
+    {
+        $types   = [];
+        $default = self::defaultType($project);
+        if ($default !== '') {
+            $types[strtolower($default)] = $default;
+        }
+        foreach (self::csv($project['offered_types'] ?? '') as $type) {
+            $types[strtolower($type)] ??= $type;
+        }
+
+        return array_values($types);
+    }
+
+    /**
+     * The type to create: the one chosen in the ticket, which must be offered by the project, or the default one.
+     *
+     * @throws RuntimeException
+     */
+    public static function resolveType(array $project, ?string $type): string
+    {
+        $type = trim((string) $type);
+        if ($type === '') {
+            $type = self::defaultType($project);
+            if ($type === '') {
+                throw new RuntimeException(__('No work item type is configured for this project.', 'azuredevops'));
+            }
+
+            return $type;
+        }
+        foreach (self::offeredTypes($project) as $offered) {
+            if (strcasecmp($offered, $type) === 0) {
+                return $offered;
+            }
+        }
+
+        throw new RuntimeException(sprintf(__('This type of work item cannot be created from a ticket in this project: %s', 'azuredevops'), $type));
+    }
+
     // ---------------------------------------------------------- default fields
 
     /**
-     * Parse "Reference.Name = value" lines. Empty lines and lines starting with # are ignored.
+     * Parse the default fields: "Reference.Name = value" (every type) or "Type: Reference.Name = value" (one type),
+     * one per line. Empty lines and lines starting with # are ignored.
      *
-     * @return array{0: array<string, string>, 1: string[]} the fields (reference name => value) and the invalid lines
+     * @return array{0: array<int, array{type: ?string, ref: string, value: string}>, 1: string[]} the entries and the invalid lines
      */
     public static function parseDefaultFields(?string $text): array
     {
-        $fields = [];
-        $bad    = [];
+        $entries = [];
+        $bad     = [];
         foreach (preg_split('/\r\n|\r|\n/', (string) $text) ?: [] as $line) {
             $line = trim($line);
             if ($line === '' || str_starts_with($line, '#')) {
                 continue;
             }
             // A reference name always has a dot: System.AreaPath, Microsoft.VSTS.Common.Priority, Custom.Team...
-            if (!preg_match('/^([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)\s*=\s*(.*)$/', $line, $m) || in_array(strtolower($m[1]), ['system.title', 'system.description'], true)) {
+            if (!preg_match('/^(?:([^=:]+?)\s*:\s+)?([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)\s*=\s*(.*)$/', $line, $m) || in_array(strtolower($m[2]), ['system.title', 'system.description'], true)) {
                 $bad[] = $line;
                 continue;
             }
-            $fields[$m[1]] = trim($m[2]);
+            $type = trim($m[1] ?? '');
+            $entries[] = ['type' => $type !== '' ? $type : null, 'ref' => $m[2], 'value' => trim($m[3])];
         }
 
-        return [$fields, $bad];
+        return [$entries, $bad];
     }
 
     /**
+     * The lines as stored: normalised, one per line, the last value of a field winning.
+     *
+     * @param array<int, array{type: ?string, ref: string, value: string}> $entries
+     */
+    public static function formatDefaultFields(array $entries): string
+    {
+        $last = [];
+        foreach ($entries as $entry) {
+            $last[strtolower(($entry['type'] ?? '') . '|' . $entry['ref'])] = $entry;
+        }
+
+        return implode("\n", array_map(
+            static fn(array $e): string => ($e['type'] !== null ? $e['type'] . ': ' : '') . $e['ref'] . ' = ' . $e['value'],
+            array_values($last)
+        ));
+    }
+
+    /**
+     * Default values for a type: the lines that apply to every type, completed (and overridden) by those of that type.
+     *
      * @return array<string, string> reference name => value (placeholders not yet replaced)
      */
-    public static function defaultFields(array $project): array
+    public static function defaultFields(array $project, ?string $type = null): array
     {
-        return self::parseDefaultFields($project['default_fields'] ?? '')[0];
+        $type   = $type ?? self::defaultType($project);
+        $values = [];
+        foreach ([true, false] as $global) {   // every type first, then the specific ones win
+            foreach (self::parseDefaultFields($project['default_fields'] ?? '')[0] as $entry) {
+                if ($global ? $entry['type'] === null : ($entry['type'] !== null && strcasecmp($entry['type'], $type) === 0)) {
+                    $values[strtolower($entry['ref'])] = [$entry['ref'], $entry['value']];
+                }
+            }
+        }
+
+        return array_column($values, 1, 0);
     }
 
     /**
-     * Fields the process of the configured work item type requires, as read at the last test, with whether the
-     * project gives them a value. The fields of the "System." family are filled in by Azure DevOps itself.
+     * Fields the process requires for a work item type (the default one unless told), as read at the last test, with
+     * whether the project gives them a value. The fields of the "System." family are filled in by Azure DevOps itself.
      *
      * @return array<int, array{ref: string, name: string, default: ?string, allowed: string[], covered: bool}>
      */
-    public static function requiredFields(array $project): array
+    public static function requiredFields(array $project, ?string $type = null): array
     {
-        $type   = (string) ($project['workitem_type'] ?? '');
-        $given  = array_change_key_case(self::defaultFields($project), CASE_LOWER);
+        $type   = $type ?? self::defaultType($project);
+        $given  = array_change_key_case(self::defaultFields($project, $type), CASE_LOWER);
         $fields = [];
         foreach (self::cache($project)['required'][$type] ?? [] as $field) {
             $fields[] = [
@@ -378,6 +472,21 @@ final class Project
         }
 
         return $fields;
+    }
+
+    /**
+     * Required fields of every type offered by the project (those read at the last test).
+     *
+     * @return array<string, array<int, array{ref: string, name: string, default: ?string, allowed: string[], covered: bool}>>
+     */
+    public static function requiredFieldsByType(array $project): array
+    {
+        $all = [];
+        foreach (self::offeredTypes($project) as $type) {
+            $all[$type] = self::requiredFields($project, $type);
+        }
+
+        return $all;
     }
 
     // ------------------------------------------------------- types and states
@@ -414,14 +523,22 @@ final class Project
         foreach ($types as $type) {
             $cache['types'][$type['name']] = ['states' => $type['states'], 'hierarchy' => $type['hierarchy'] ?? ''];
         }
-        // The fields the process requires for the type to create (not fatal: only used to help the administrator).
+        // The fields the process requires for each type that can be created (not fatal: only used to help the administrator).
         $cache['required'] = [];
-        $type = (string) $project['workitem_type'];
-        if ($type !== '' && isset($cache['types'][$type])) {
+        foreach (array_slice(self::offeredTypes($project), 0, 12) as $wanted) {
+            $type = null;
+            foreach (array_keys($cache['types']) as $known) {
+                if (strcasecmp((string) $known, $wanted) === 0) {
+                    $type = (string) $known;
+                }
+            }
+            if ($type === null) {
+                continue;
+            }
             try {
                 foreach ($client->getTypeFields($type) as $field) {
                     if ($field['required'] && !str_starts_with(strtolower($field['ref']), 'system.')) {
-                        $cache['required'][$type][] = ['ref' => $field['ref'], 'name' => $field['name'], 'default' => $field['default'], 'allowed' => array_slice($field['allowed'], 0, 200)];
+                        $cache['required'][$wanted][] = ['ref' => $field['ref'], 'name' => $field['name'], 'default' => $field['default'], 'allowed' => array_slice($field['allowed'], 0, 200)];
                     }
                 }
             } catch (AdoException $e) {

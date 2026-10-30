@@ -2,6 +2,15 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.5
+- **The type of work item is chosen in the ticket** (User Story, Bug...), next to the project: a *Type* list in the creation form, filled with the types the project offers. If none is chosen, the project's **default type** is created.
+- Per project, *Default type of work item* and **Other types the technician can choose in the ticket** (picked among the types read from Azure DevOps; empty = only the default type, as before).
+- **Each type has its own required fields**: the connection test reads them for every offered type, the project page lists them per type, and the form of the ticket shows those of the chosen type (a Bug is not asked what a User Story is).
+- *Default fields* can target a type: `Bug: Microsoft.VSTS.Common.Severity = 2 - High` (lines without a type apply to every type).
+- A ticket can have an open User Story **and** an open Bug in the same project; a second one of the same type is blocked. Searching an existing work item to link also finds the offered types.
+- What the form sends is checked on the server: the type must be offered by the project.
+- Update from 1.0.4: one column is added to the projects table; existing projects keep creating their configured type only.
+
 ## 1.0.4
 - **The creation form offers the fields the process requires** (Priority...), next to the project and the parent: a list of the values the process allows (read from Azure DevOps at the connection test), or a text box when there is no list. The value is preselected from the project's *Default fields* if any, else from the process's own default, else, for the Priority, from the priority of the ticket. The technician can change it for each work item.
 - What is sent is checked on the server: only the fields the project lists as required can be set from the ticket, with one of the allowed values; an empty choice falls back on the project's default.

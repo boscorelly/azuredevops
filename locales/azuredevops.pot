@@ -253,15 +253,11 @@ msgid "You are not allowed to use this project."
 msgstr ""
 
 #: src/Link.php
-msgid "No work item type is configured for this project."
-msgstr ""
-
-#: src/Link.php
 msgid "Another creation is in progress for this ticket, try again in a moment."
 msgstr ""
 
 #: src/Link.php
-msgid "This ticket already has an open work item created in this project."
+msgid "This ticket already has an open work item of type \"%s\" created in this project."
 msgstr ""
 
 #: src/Link.php
@@ -327,7 +323,7 @@ msgid "The organization and the Azure DevOps project name are required."
 msgstr ""
 
 #: src/Project.php
-msgid "Invalid line in the default fields (expected \"Reference.Name = value\", and not System.Title or System.Description): %s"
+msgid "Invalid line in the default fields (expected \"Reference.Name = value\" or \"Type: Reference.Name = value\", and not System.Title or System.Description): %s"
 msgstr ""
 
 #: src/Project.php
@@ -340,6 +336,14 @@ msgstr ""
 
 #: src/Project.php
 msgid "Tickets are linked to this project: it cannot be deleted. Deactivate it instead."
+msgstr ""
+
+#: src/Project.php
+msgid "No work item type is configured for this project."
+msgstr ""
+
+#: src/Project.php
+msgid "This type of work item cannot be created from a ticket in this project: %s"
 msgstr ""
 
 #: src/Project.php
@@ -685,11 +689,19 @@ msgid "Save with \"Save and test the connection\" to read the work item types of
 msgstr ""
 
 #: templates/project.html.twig
-msgid "Type of work item to create"
+msgid "Default type of work item"
 msgstr ""
 
 #: templates/project.html.twig
-msgid "For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). Its closure is what solves the ticket."
+msgid "Created when the technician does not choose another type. For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). The closure of the work items that are not of a \"followup only\" type is what solves the ticket."
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Other types the technician can choose in the ticket"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "For example Bug next to User Story. The technician chooses the type in the ticket, among the default type and these ones (the types come from Azure DevOps). Each type has its own required fields, listed below after \"Save and test the connection\". Leave empty to offer only the default type."
 msgstr ""
 
 #: templates/project.html.twig
@@ -737,11 +749,11 @@ msgid "Default fields"
 msgstr ""
 
 #: templates/project.html.twig
-msgid "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value. Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored."
+msgid "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored."
 msgstr ""
 
 #: templates/project.html.twig
-msgid "Fields required by the process for this type"
+msgid "Fields required by the process for the type"
 msgstr ""
 
 #: templates/project.html.twig
@@ -761,7 +773,7 @@ msgid "Needs a value"
 msgstr ""
 
 #: templates/project.html.twig
-msgid "Read from Azure DevOps at the last \"Save and test the connection\". Use the reference name in the default fields, with one of the allowed values."
+msgid "Read from Azure DevOps at the last \"Save and test the connection\". The technician chooses these values in the ticket; give them a default here (one of the allowed values)."
 msgstr ""
 
 #: templates/project.html.twig
@@ -849,6 +861,10 @@ msgid "Project"
 msgstr ""
 
 #: templates/ticket_tab.html.twig
+msgid "Type"
+msgstr ""
+
+#: templates/ticket_tab.html.twig
 msgid "Under (Epic, Feature…)"
 msgstr ""
 
@@ -874,14 +890,6 @@ msgstr ""
 
 #: templates/ticket_tab.html.twig
 msgid "Required by the process"
-msgstr ""
-
-#: templates/ticket_tab.html.twig
-msgid "A work item of type"
-msgstr ""
-
-#: templates/ticket_tab.html.twig
-msgid "will be created."
 msgstr ""
 
 #: templates/ticket_tab.html.twig

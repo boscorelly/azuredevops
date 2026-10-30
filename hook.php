@@ -135,6 +135,8 @@ function plugin_azuredevops_install(): bool
         'access_token_expires' => "INT {$key_sign} NOT NULL DEFAULT '0'",
         // 1.0.3: values for the fields the process requires (Priority...)
         'default_fields'       => 'TEXT DEFAULT NULL',
+        // 1.0.5: other types of work item the technician can choose in the ticket
+        'offered_types'        => "VARCHAR(512) NOT NULL DEFAULT ''",
     ] as $field => $definition) {
         if (!$DB->fieldExists($projects_table, $field)) {
             $DB->doQuery("ALTER TABLE `$projects_table` ADD COLUMN `$field` $definition");
