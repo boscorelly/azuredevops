@@ -13,7 +13,7 @@ access=$($Q "select (select count(*) from glpi_plugin_azuredevops_projects_users
 tokens=$($Q "select md5(group_concat(token order by id)) from glpi_plugin_azuredevops_projects")
 echo "before: $projects projects, $links links, $access access rows"
 
-# 1.0.x had none of the Entra columns
+# 1.0.0 had none of the Entra columns
 $Q "alter table glpi_plugin_azuredevops_projects drop column auth_mode, drop column tenant_id, drop column client_id, drop column client_secret, drop column access_token, drop column access_token_expires"
 $Q "update glpi_profilerights set rights=1 where name='plugin_azuredevops_workitem' and profiles_id=4; delete from glpi_configs where context='plugin:azuredevops' and name='creation_followup_private'; update glpi_plugins set version='1.0.0' where directory='azuredevops';"
 rm -rf files/_cache/*

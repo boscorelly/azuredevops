@@ -123,8 +123,8 @@ function plugin_azuredevops_install(): bool
         );
     }
 
-    // 1.1.0: Microsoft Entra application as an alternative to the personal access token.
-    // The same code serves the first installation and the update from 1.0.x.
+    // 1.0.1: Microsoft Entra application as an alternative to the personal access token.
+    // The same code serves the first installation and the update from 1.0.0.
     $projects_table = Project::getTable();
     foreach ([
         'auth_mode'            => "VARCHAR(8) NOT NULL DEFAULT 'pat'",
