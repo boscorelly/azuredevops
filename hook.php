@@ -133,6 +133,8 @@ function plugin_azuredevops_install(): bool
         'client_secret'        => 'TEXT DEFAULT NULL',
         'access_token'         => 'TEXT DEFAULT NULL',
         'access_token_expires' => "INT {$key_sign} NOT NULL DEFAULT '0'",
+        // 1.0.3: values for the fields the process requires (Priority...)
+        'default_fields'       => 'TEXT DEFAULT NULL',
     ] as $field => $definition) {
         if (!$DB->fieldExists($projects_table, $field)) {
             $DB->doQuery("ALTER TABLE `$projects_table` ADD COLUMN `$field` $definition");

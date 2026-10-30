@@ -144,6 +144,41 @@
                     <div class="form-text">{{ __('Comma separated. An account with the "Stakeholder" access level can only use tags that already exist in the project: leave this empty, or create the tag first.', 'azuredevops') }}</div>
                 </div>
             </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="ado_fields">{{ __('Default fields', 'azuredevops') }}</label>
+                <textarea id="ado_fields" name="default_fields" class="form-control font-monospace" rows="4" placeholder="Microsoft.VSTS.Common.Priority = {priority}">{{ project.default_fields }}</textarea>
+                <div class="form-text">{{ __('Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value. Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored.', 'azuredevops') }}</div>
+            </div>
+
+            {% if required_fields is not empty %}
+                <div class="mb-3">
+                    <label class="form-label">{{ __('Fields required by the process for this type', 'azuredevops') }}</label>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th>{{ __('Reference name', 'azuredevops') }}</th>
+                                    <th>{{ __('Name', 'azuredevops') }}</th>
+                                    <th>{{ __('Allowed values', 'azuredevops') }}</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for f in required_fields %}
+                                <tr>
+                                    <td><code>{{ f.ref }}</code></td>
+                                    <td>{{ f.name }}</td>
+                                    <td class="small">{{ f.allowed is empty ? '—' : f.allowed|join(', ') }}</td>
+                                    <td>{% if f.covered %}<span class="badge bg-green-lt">{{ __('Has a value', 'azuredevops') }}</span>{% else %}<span class="badge bg-orange-lt">{{ __('Needs a value', 'azuredevops') }}</span>{% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="form-text">{{ __('Read from Azure DevOps at the last "Save and test the connection". Use the reference name in the default fields, with one of the allowed values.', 'azuredevops') }}</div>
+                </div>
+            {% endif %}
         </div>
     </div>
 

@@ -4,6 +4,7 @@ namespace GlpiPlugin\Azuredevops;
 
 use GLPIKey;
 use RuntimeException;
+use Toolbox;
 
 /**
  * A configured Azure DevOps project: where to create work items, with which access token, and the rules
@@ -207,6 +208,15 @@ final class Project
             return implode(',', self::csv(implode(',', array_map('strval', $items))));
         };
 
+        // Values for the fields the process requires ("Reference.Name = value", one per line)
+        [$default_fields, $bad_lines] = self::parseDefaultFields($str('default_fields'));
+        if ($bad_lines !== []) {
+            throw new RuntimeException(sprintf(
+                __('Invalid line in the default fields (expected "Reference.Name = value", and not System.Title or System.Description): %s', 'azuredevops'),
+                mb_substr($bad_lines[0], 0, 120)
+            ));
+        }
+
         $values = [
             'name'                => mb_substr($name, 0, 255),
             'organization'        => mb_substr($organization, 0, 255),
@@ -219,6 +229,7 @@ final class Project
             'done_categories'     => implode(',', $done),
             'area_path'           => $str('area_path') !== '' ? mb_substr($str('area_path'), 0, 512) : null,
             'default_tags'        => mb_substr($str('default_tags'), 0, 255),
+            'default_fields'      => $default_fields !== [] ? implode("\n", array_map(static fn($k, $v) => $k . ' = ' . $v, array_keys($default_fields), $default_fields)) : null,
             'date_mod'            => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
         ];
 
@@ -310,6 +321,65 @@ final class Project
         $DB->delete(self::getTable(), ['id' => $id]);
     }
 
+    // ---------------------------------------------------------- default fields
+
+    /**
+     * Parse "Reference.Name = value" lines. Empty lines and lines starting with # are ignored.
+     *
+     * @return array{0: array<string, string>, 1: string[]} the fields (reference name => value) and the invalid lines
+     */
+    public static function parseDefaultFields(?string $text): array
+    {
+        $fields = [];
+        $bad    = [];
+        foreach (preg_split('/\r\n|\r|\n/', (string) $text) ?: [] as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+            // A reference name always has a dot: System.AreaPath, Microsoft.VSTS.Common.Priority, Custom.Team...
+            if (!preg_match('/^([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)\s*=\s*(.*)$/', $line, $m) || in_array(strtolower($m[1]), ['system.title', 'system.description'], true)) {
+                $bad[] = $line;
+                continue;
+            }
+            $fields[$m[1]] = trim($m[2]);
+        }
+
+        return [$fields, $bad];
+    }
+
+    /**
+     * @return array<string, string> reference name => value (placeholders not yet replaced)
+     */
+    public static function defaultFields(array $project): array
+    {
+        return self::parseDefaultFields($project['default_fields'] ?? '')[0];
+    }
+
+    /**
+     * Fields the process of the configured work item type requires, as read at the last test, with whether the
+     * project gives them a value. The fields of the "System." family are filled in by Azure DevOps itself.
+     *
+     * @return array<int, array{ref: string, name: string, default: ?string, allowed: string[], covered: bool}>
+     */
+    public static function requiredFields(array $project): array
+    {
+        $type   = (string) ($project['workitem_type'] ?? '');
+        $given  = array_change_key_case(self::defaultFields($project), CASE_LOWER);
+        $fields = [];
+        foreach (self::cache($project)['required'][$type] ?? [] as $field) {
+            $fields[] = [
+                'ref'      => $field['ref'],
+                'name'     => $field['name'],
+                'default'  => $field['default'] ?? null,
+                'allowed'  => $field['allowed'] ?? [],
+                'covered'  => isset($given[strtolower($field['ref'])]) || ($field['default'] ?? null) !== null,
+            ];
+        }
+
+        return $fields;
+    }
+
     // ------------------------------------------------------- types and states
 
     /**
@@ -344,6 +414,21 @@ final class Project
         foreach ($types as $type) {
             $cache['types'][$type['name']] = ['states' => $type['states'], 'hierarchy' => $type['hierarchy'] ?? ''];
         }
+        // The fields the process requires for the type to create (not fatal: only used to help the administrator).
+        $cache['required'] = [];
+        $type = (string) $project['workitem_type'];
+        if ($type !== '' && isset($cache['types'][$type])) {
+            try {
+                foreach ($client->getTypeFields($type) as $field) {
+                    if ($field['required'] && !str_starts_with(strtolower($field['ref']), 'system.')) {
+                        $cache['required'][$type][] = ['ref' => $field['ref'], 'name' => $field['name'], 'default' => $field['default'], 'allowed' => array_slice($field['allowed'], 0, 50)];
+                    }
+                }
+            } catch (AdoException $e) {
+                Toolbox::logInFile('azuredevops', sprintf("Fields of the type %s not read (project %d): %s\n", $type, $id, $e->getMessage()));
+            }
+        }
+
         $DB->update(self::getTable(), [
             'types_cache'     => json_encode($cache, JSON_UNESCAPED_UNICODE),
             'last_error'      => null,

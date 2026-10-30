@@ -57,6 +57,10 @@ msgid "Azure DevOps rejected the request (HTTP %d)%s"
 msgstr "Azure DevOps a rejeté la requête (HTTP %d)%s"
 
 #: src/AdoClient.php
+msgid "The process requires a value for a field the plugin does not fill in: set it in the project, under \"Default fields\" (the required fields of the type are listed there after \"Save and test the connection\")."
+msgstr "Le processus exige une valeur pour un champ que le plugin ne renseigne pas : indiquez-la dans le projet, sous « Champs par défaut » (les champs obligatoires du type y sont listés après « Enregistrer et tester la connexion »)."
+
+#: src/AdoClient.php
 msgid "For an Entra application: it must be added as a user of the Azure DevOps organization (Organization settings > Users) and have access to this project."
 msgstr "Pour une application Entra : elle doit être ajoutée comme utilisateur de l'organisation Azure DevOps (Paramètres de l'organisation > Utilisateurs) et avoir accès à ce projet."
 
@@ -313,6 +317,10 @@ msgstr "Un autre projet porte déjà ce nom."
 #: src/Project.php
 msgid "The organization and the Azure DevOps project name are required."
 msgstr "L'organisation et le nom du projet Azure DevOps sont obligatoires."
+
+#: src/Project.php
+msgid "Invalid line in the default fields (expected \"Reference.Name = value\", and not System.Title or System.Description): %s"
+msgstr "Ligne invalide dans les champs par défaut (attendu : « Nom.Référence = valeur », hors System.Title et System.Description) : %s"
 
 #: src/Project.php
 msgid "The access token is required."
@@ -715,6 +723,38 @@ msgstr "Tags par défaut"
 #: templates/project.html.twig
 msgid "Comma separated. An account with the \"Stakeholder\" access level can only use tags that already exist in the project: leave this empty, or create the tag first."
 msgstr "Séparés par des virgules. Un compte de niveau d'accès « Stakeholder » ne peut utiliser que des tags qui existent déjà dans le projet : laissez ce champ vide, ou créez d'abord le tag."
+
+#: templates/project.html.twig
+msgid "Default fields"
+msgstr "Champs par défaut"
+
+#: templates/project.html.twig
+msgid "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value. Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored."
+msgstr "Valeurs des champs que le processus exige et que le plugin ne renseigne pas (un élément ne peut pas être créé sans eux). Un par ligne : Nom.Référence = valeur. Variables : {priority} (priorité du ticket de 1 = la plus urgente à 4 = la plus basse), {id} et {title}. Les lignes commençant par # sont ignorées."
+
+#: templates/project.html.twig
+msgid "Fields required by the process for this type"
+msgstr "Champs exigés par le processus pour ce type"
+
+#: templates/project.html.twig
+msgid "Reference name"
+msgstr "Nom de référence"
+
+#: templates/project.html.twig
+msgid "Allowed values"
+msgstr "Valeurs autorisées"
+
+#: templates/project.html.twig
+msgid "Has a value"
+msgstr "Valeur renseignée"
+
+#: templates/project.html.twig
+msgid "Needs a value"
+msgstr "Valeur à renseigner"
+
+#: templates/project.html.twig
+msgid "Read from Azure DevOps at the last \"Save and test the connection\". Use the reference name in the default fields, with one of the allowed values."
+msgstr "Lus dans Azure DevOps lors du dernier « Enregistrer et tester la connexion ». Utilisez le nom de référence dans les champs par défaut, avec l'une des valeurs autorisées."
 
 #: templates/project.html.twig
 msgid "Who can use this project"

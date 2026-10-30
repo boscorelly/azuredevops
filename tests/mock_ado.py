@@ -17,6 +17,8 @@ Control endpoints (not part of Azure DevOps), JSON bodies:
   POST /_mock/fail    {"status":500,"retry_after":30}                 every API request fails (0 = stop)
   POST /_mock/token   {"mode":"html"}                                 refused tokens answer 203 + sign-in page ("401" = default)
   POST /_mock/entra   {"expires_in":3600,"secret_expired":false,"org_access":true}   behaviour of the Entra sign-in
+  POST /_mock/rules   {"project":"Tata","type":"Issue","fields":{"Microsoft.VSTS.Common.Priority":{"name":"Priorité","allowed":["1","2","3","4"]}}}
+                                                                      fields the process requires when creating that type ({} = none)
   POST /_mock/revoke_bearers                                          every access token issued so far stops working
   GET  /_mock/dump    -> everything received so far
   POST /_mock/reset
@@ -62,7 +64,7 @@ state = {}
 def reset():
     state.clear()
     state.update({'items': {}, 'attachments': {}, 'requests': [], 'next_id': 100, 'fail': 0, 'retry_after': 0, 'token_mode': '401',
-                  'bearers': {}, 'token_requests': [], 'entra': {'expires_in': 3600, 'secret_expired': False, 'org_access': True}})
+                  'bearers': {}, 'token_requests': [], 'rules': {}, 'entra': {'expires_in': 3600, 'secret_expired': False, 'org_access': True}})
 
 
 reset()
@@ -251,6 +253,19 @@ class H(BaseHTTPRequestHandler):
                 value.append(e)
             value.append({'name': 'Hidden Type', 'isDisabled': True})
             return self.send(200, {'count': len(value), 'value': value})
+        mm = re.match(r'^wit/workitemtypes/([^/]+)/fields$', api)
+        if mm and method == 'GET':
+            t = proj['types'].get(mm.group(1))
+            if t is None:
+                return self.error(404, 'VS402323: work item type not found')
+            out = [{'referenceName': 'System.Title', 'name': 'Title', 'alwaysRequired': True, 'defaultValue': None},
+                   {'referenceName': 'System.State', 'name': 'State', 'alwaysRequired': True, 'defaultValue': t['states'][0][0]},
+                   {'referenceName': 'System.AreaPath', 'name': 'Area Path', 'alwaysRequired': True, 'defaultValue': project},
+                   {'referenceName': 'System.Description', 'name': 'Description', 'alwaysRequired': False},
+                   {'referenceName': 'Microsoft.VSTS.Common.Activity', 'name': 'Activity', 'alwaysRequired': False, 'allowedValues': ['Design', 'Development']}]
+            for ref, r in state['rules'].get(f'{project}|{mm.group(1)}', {}).items():
+                out.append({'referenceName': ref, 'name': r['name'], 'alwaysRequired': True, 'allowedValues': r.get('allowed', [])})
+            return self.send(200, {'count': len(out), 'value': out})
         mm = re.match(r'^wit/workitemtypes/([^/]+)/states$', api)
         if mm and method == 'GET':
             t = proj['types'].get(mm.group(1))
@@ -300,6 +315,15 @@ class H(BaseHTTPRequestHandler):
             allowed = proj['hierarchy'].get(wtype, [])
             if pit['fields']['System.WorkItemType'] not in allowed:
                 return self.error(400, f'TF26194: The link type is not allowed between a {pit["fields"]["System.WorkItemType"]} and a {wtype}.')
+        errors = []
+        for ref, r in state['rules'].get(f'{project}|{wtype}', {}).items():
+            v = fields.get(ref)
+            if v in (None, ''):
+                errors.append(f"TF401320: Rule Error for field {r['name']}. Error code: Required, HasValues, LimitedToValues, AllowsOldValue, InvalidEmpty.")
+            elif r.get('allowed') and str(v) not in r['allowed']:
+                errors.append(f"TF401320: Rule Error for field {r['name']}. Error code: LimitedToValues, InvalidListValue.")
+        if errors:
+            return self.error(400, errors[0] + (' One additional error occurred during validation of the work item.' if len(errors) > 1 else '') + ' Please correct all errors and try again.')
         item = new_item(project, wtype, fields['System.Title'], parent=parent, by=proj['user'])
         item['relations'] = rels
         for k, v in fields.items():
@@ -336,6 +360,13 @@ class H(BaseHTTPRequestHandler):
         if path == '/_mock/fail':
             state['fail'] = int(data['status'])
             state['retry_after'] = int(data.get('retry_after', 0))
+            return self.send(200, {})
+        if path == '/_mock/rules':
+            key = f"{data['project']}|{data['type']}"
+            if data.get('fields'):
+                state['rules'][key] = data['fields']
+            else:
+                state['rules'].pop(key, None)
             return self.send(200, {})
         if path == '/_mock/entra':
             state['entra'].update(data)

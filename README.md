@@ -26,9 +26,26 @@ Tested on **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) against a mock of the Azure 
 | Possible parents | Types under which a work item can be created and that can be linked (`Epic`, `Feature`…) |
 | "Followup only" types | Types (Epic, Feature…) whose completion only adds a private followup and never solves the ticket |
 | Done categories | `Completed` (always) and optionally `Resolved`. Categories come from the process template, so custom states and processes work without configuration |
+| Default fields | Values for the fields your process makes mandatory (Priority...), see below |
 | Area path, default tags | Optional |
 
 Credentials expire or get revoked: when they are refused, the error is shown in the project list and on the linked tickets, the other projects keep being checked, and entering new ones clears it.
+
+### Fields required by your process (Priority…)
+
+A custom process can make fields mandatory, often with a list of allowed values. Azure DevOps then refuses the creation: `TF401320: Rule Error for field Priority ... Required ... LimitedToValues`. It reports one field at a time ("One additional error occurred"), so the plugin reads them all for you:
+
+1. In the project, choose the **type of work item to create** and use *Save and test the connection*.
+2. The project page now lists **the fields required by the process for that type**, with their **reference name** (for example `Microsoft.VSTS.Common.Priority`), their allowed values, and whether they still *need a value*.
+3. In **Default fields**, give each one a value, one per line:
+
+```
+Microsoft.VSTS.Common.Priority = {priority}
+Custom.Team = Support
+Custom.Reference = GLPI-{id}: {title}
+```
+
+Placeholders: `{priority}` is the ticket's priority on the Azure DevOps scale (GLPI 5-6 → 1, 4 → 2, 3 → 3, 1-2 → 4; use a fixed value if your process has other values), `{id}` the ticket number, `{title}` its title. Use one of the **allowed values** exactly as listed. Fields with a default in the process get it from Azure DevOps and need nothing.
 
 ### Authenticate without a personal account (Microsoft Entra application)
 

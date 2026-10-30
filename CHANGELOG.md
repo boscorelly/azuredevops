@@ -2,6 +2,12 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.3
+- **Fields required by the process** (`TF401320: Rule Error for field Priority...`): a custom process can make fields such as Priority mandatory, with a list of allowed values, and the work item could not be created. New per-project setting **Default fields** (`Reference.Name = value`, one per line) with the placeholders `{priority}` (the ticket's priority on the Azure DevOps scale, 1 = most urgent to 4 = lowest), `{id}` and `{title}`.
+- *Save and test the connection* now **reads the required fields of the type to create** (with their allowed values) and lists them in the project, showing which ones still need a value, so that all of them can be filled in at once (Azure DevOps reports only the first error).
+- When Azure DevOps refuses a creation because of such a rule, the message says where to set the value.
+- Update from 1.0.2: one column is added to the projects table.
+
 ## 1.0.2
 - **The message of Azure DevOps is no longer lost on server errors (HTTP 5xx)**: it is shown in GLPI and recorded on the link, like for the other errors. Failures of the creation, linking and search are also written to `files/_log/azuredevops.log`.
 - The parent / work item search lists show the Azure DevOps error instead of an empty list.

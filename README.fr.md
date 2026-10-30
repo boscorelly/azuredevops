@@ -26,9 +26,26 @@ Testé sur **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) contre un mock de l'API RES
 | Parents possibles | Types sous lesquels on peut créer un élément et que l'on peut lier (`Epic`, `Feature`…) |
 | Types « suivi uniquement » | Types (Epic, Feature…) dont la fin ajoute seulement un suivi privé et ne résout jamais le ticket |
 | Catégories « terminé » | `Completed` (toujours) et éventuellement `Resolved`. Les catégories viennent du modèle de processus : états et processus personnalisés fonctionnent sans configuration |
+| Champs par défaut | Valeurs des champs que votre processus rend obligatoires (Priorité…), voir ci-dessous |
 | Area path, tags par défaut | Facultatifs |
 
 Les identifiants expirent ou sont révoqués : quand ils sont refusés, l'erreur s'affiche dans la liste des projets et sur les tickets concernés, les autres projets continuent d'être vérifiés, et saisir de nouveaux identifiants efface l'erreur.
+
+### Champs exigés par votre processus (Priorité…)
+
+Un processus personnalisé peut rendre des champs obligatoires, souvent avec une liste de valeurs autorisées. Azure DevOps refuse alors la création : `TF401320: Rule Error for field Priorité ... Required ... LimitedToValues`. Il ne signale qu'un champ à la fois (« One additional error occurred »), donc le plugin les lit tous pour vous :
+
+1. Dans le projet, choisissez le **type d'élément à créer** et utilisez *Enregistrer et tester la connexion*.
+2. La page du projet liste maintenant **les champs exigés par le processus pour ce type**, avec leur **nom de référence** (par exemple `Microsoft.VSTS.Common.Priority`), leurs valeurs autorisées, et s'ils ont encore *besoin d'une valeur*.
+3. Dans **Champs par défaut**, donnez une valeur à chacun, une par ligne :
+
+```
+Microsoft.VSTS.Common.Priority = {priority}
+Custom.Team = Support
+Custom.Reference = GLPI-{id}: {title}
+```
+
+Variables : `{priority}` est la priorité du ticket sur l'échelle d'Azure DevOps (GLPI 5-6 → 1, 4 → 2, 3 → 3, 1-2 → 4 ; utilisez une valeur fixe si votre processus a d'autres valeurs), `{id}` le numéro du ticket, `{title}` son titre. Utilisez exactement l'une des **valeurs autorisées** listées. Les champs qui ont une valeur par défaut dans le processus la reçoivent d'Azure DevOps et n'ont besoin de rien.
 
 ### S'authentifier sans compte personnel (application Microsoft Entra)
 

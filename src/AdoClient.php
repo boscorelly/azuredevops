@@ -167,7 +167,7 @@ class AdoClient
                 $status
             ),
             default => new AdoException(
-                sprintf(__('Azure DevOps rejected the request (HTTP %d)%s', 'azuredevops'), $status, $suffix),
+                sprintf(__('Azure DevOps rejected the request (HTTP %d)%s', 'azuredevops'), $status, $suffix) . $this->ruleHint($detail),
                 AdoException::REQUEST,
                 $status
             ),
@@ -182,6 +182,16 @@ class AdoClient
         $secrets = $this->auth->secrets();
 
         return $secrets !== [] ? str_replace($secrets, '***', $text) : $text;
+    }
+
+    /**
+     * A field required by the process (TF401320): tell where to give it a value.
+     */
+    private function ruleHint(string $detail): string
+    {
+        return str_contains($detail, 'TF401320')
+            ? ' ' . __('The process requires a value for a field the plugin does not fill in: set it in the project, under "Default fields" (the required fields of the type are listed there after "Save and test the connection").', 'azuredevops')
+            : '';
     }
 
     /**
@@ -240,6 +250,33 @@ class AdoClient
         }
 
         return $types;
+    }
+
+    /**
+     * Fields of a work item type with their rules: which ones the process requires, their default and the values
+     * they are limited to (the "Priority" of a custom process, for instance).
+     *
+     * @return array<int, array{ref: string, name: string, required: bool, default: ?string, allowed: string[]}>
+     */
+    public function getTypeFields(string $type): array
+    {
+        $res    = $this->request('GET', $this->project_url . '_apis/wit/workitemtypes/' . rawurlencode($type) . '/fields', ['query' => ['$expand' => 'allowedValues']]);
+        $fields = [];
+        foreach ((array) ($res['data']['value'] ?? []) as $field) {
+            if (!is_array($field) || empty($field['referenceName'])) {
+                continue;
+            }
+            $default = $field['defaultValue'] ?? null;
+            $fields[] = [
+                'ref'      => (string) $field['referenceName'],
+                'name'     => (string) ($field['name'] ?? $field['referenceName']),
+                'required' => !empty($field['alwaysRequired']),
+                'default'  => is_scalar($default) && (string) $default !== '' ? (string) $default : null,
+                'allowed'  => array_values(array_map('strval', array_filter((array) ($field['allowedValues'] ?? []), 'is_scalar'))),
+            ];
+        }
+
+        return $fields;
     }
 
     /**

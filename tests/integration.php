@@ -474,6 +474,38 @@ ok('both groups see both', count(Link::visibleLinks($tv->getID(), $uc)) === 2);
 ok('nobody-in-a-group sees none', Link::visibleLinks($tv->getID(), $ud) === []);
 ok('refresh / unlink are reserved to the allowed projects', Link::canUseProjectOf($vt->fields, $ua) && !Link::canUseProjectOf($vt->fields, $ub) && Link::canUseProjectOf($vu->fields, $ub));
 
+echo "== Fields required by the process (Priority, custom fields...)\n";
+$tataInput = fn(array $extra = []) => proj('Tata', $extra + ['ado_project' => 'Tata', 'token' => '', 'workitem_type' => 'Issue', 'parent_types' => 'Epic', 'followup_only_types' => 'Epic']);
+ok('GLPI priority mapped to the Azure DevOps scale (1 = most urgent)', array_map([\GlpiPlugin\Azuredevops\ItemBuilder::class, 'azurePriority'], [6, 5, 4, 3, 2, 1]) === [1, 1, 2, 3, 4, 4]);
+mock('/_mock/rules', ['project' => 'Tata', 'type' => 'Issue', 'fields' => ['Microsoft.VSTS.Common.Priority' => ['name' => 'Priorité', 'allowed' => ['1', '2', '3', '4']], 'Custom.Equipe' => ['name' => 'Équipe', 'allowed' => ['Support', 'Infra']]]]);
+$trq = newTicket('Champs requis');
+try { Link::createFromTicket($trq, $tata, 2); ok('required fields', false); }
+catch (AdoException $e) {
+    ok('rule error (TF401320): the message of Azure DevOps and where to fix it', $e->getKind() === AdoException::REQUEST && str_contains($e->getMessage(), 'TF401320') && str_contains($e->getMessage(), 'Priorité') && str_contains($e->getMessage(), 'One additional error') && str_contains($e->getMessage(), 'Default fields'), $e->getMessage());
+    ok('nothing is linked after a refused creation', countElementsInTable(Link::getTable(), ['tickets_id' => $trq->getID()]) === 0);
+}
+Project::testAndCache($tata);
+$req = Project::requiredFields(Project::find($tata));
+ok('the test reads the required fields of the type (System.* left out) with their allowed values', array_column($req, 'ref') === ['Microsoft.VSTS.Common.Priority', 'Custom.Equipe'] && $req[0]['name'] === 'Priorité' && $req[0]['allowed'] === ['1', '2', '3', '4'] && !$req[0]['covered'] && !$req[1]['covered'], json_encode($req));
+foreach (['Priority = 2', 'System.Title = x', 'System.Description = y', 'garbage'] as $bad) {
+    try { Project::saveFromInput($tataInput(['default_fields' => $bad]), $tata); ok('invalid line accepted: ' . $bad, false); }
+    catch (RuntimeException $e) { ok('invalid default field refused: ' . $bad, str_contains($e->getMessage(), $bad)); }
+}
+Project::saveFromInput($tataInput(['default_fields' => "# required by the process\nMicrosoft.VSTS.Common.Priority = {priority}\r\nCustom.Equipe = Support\n\nCustom.Reference = GLPI-{id}: {title}"]), $tata);
+ok('default fields stored one per line, comments dropped', Project::find($tata)['default_fields'] === "Microsoft.VSTS.Common.Priority = {priority}\nCustom.Equipe = Support\nCustom.Reference = GLPI-{id}: {title}", (string) Project::find($tata)['default_fields']);
+ok('they now show as covered', array_column(Project::requiredFields(Project::find($tata)), 'covered') === [true, true]);
+$r = Link::createFromTicket($trq, $tata, 2);
+$wf = item((int) $r['link']->fields['workitem_id'])['fields'];
+ok('created: priority taken from the ticket (GLPI 4 -> 2), fixed value, placeholders {id} and {title}', ($wf['Microsoft.VSTS.Common.Priority'] ?? '') === '2' && ($wf['Custom.Equipe'] ?? '') === 'Support' && ($wf['Custom.Reference'] ?? '') === 'GLPI-' . $trq->getID() . ': Champs requis', json_encode($wf));
+Project::saveFromInput($tataInput(['default_fields' => "Microsoft.VSTS.Common.Priority = 9\nCustom.Equipe = Support"]), $tata);
+try { Link::createFromTicket($trq, $tata, 2, 0, '', true); ok('value outside the allowed ones', false); }
+catch (AdoException $e) { ok('a value outside the allowed ones is refused by Azure DevOps, message shown', str_contains($e->getMessage(), 'LimitedToValues'), $e->getMessage()); }
+Project::saveFromInput($tataInput(['default_fields' => '']), $tata);
+ok('empty default fields are stored as nothing', Project::find($tata)['default_fields'] === null);
+mock('/_mock/rules', ['project' => 'Tata', 'type' => 'Issue', 'fields' => []]);
+Project::testAndCache($tata);
+ok('no rule any more: no required field listed', Project::requiredFields(Project::find($tata)) === []);
+
 echo "== Microsoft Entra application instead of a personal token\n";
 $signins = fn() => count(mock('/_mock/dump')['token_requests']);
 $authCount = fn(string $type) => count(array_filter(requests(), fn($r) => $r['auth_type'] === $type));

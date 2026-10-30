@@ -64,6 +64,14 @@ final class ItemBuilder
         if (!empty($project['area_path'])) {
             $fields['System.AreaPath'] = (string) $project['area_path'];
         }
+        // Fields required by the process (Priority...): fixed values, or placeholders filled from the ticket.
+        foreach (Project::defaultFields($project) as $reference => $value) {
+            $fields[$reference] = strtr($value, [
+                '{id}'       => (string) $ticket->getID(),
+                '{title}'    => (string) $ticket->fields['name'],
+                '{priority}' => (string) self::azurePriority((int) $ticket->fields['priority']),
+            ]);
+        }
 
         // 4. Relations: parent, link back to the ticket, attachments
         $relations = [];
@@ -90,6 +98,20 @@ final class ItemBuilder
     }
 
     // ------------------------------------------------------------------ pieces
+
+    /**
+     * Priority of the ticket (GLPI: 1 very low ... 5 very high, 6 major) as an Azure DevOps priority
+     * (1 = most urgent ... 4 = lowest), the scale of the standard processes.
+     */
+    public static function azurePriority(int $glpi_priority): int
+    {
+        return match (true) {
+            $glpi_priority >= 5 => 1,
+            $glpi_priority === 4 => 2,
+            $glpi_priority === 3 => 3,
+            default => 4,
+        };
+    }
 
     private function title(Ticket $ticket, string $template): string
     {

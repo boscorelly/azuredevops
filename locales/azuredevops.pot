@@ -57,6 +57,10 @@ msgid "Azure DevOps rejected the request (HTTP %d)%s"
 msgstr ""
 
 #: src/AdoClient.php
+msgid "The process requires a value for a field the plugin does not fill in: set it in the project, under \"Default fields\" (the required fields of the type are listed there after \"Save and test the connection\")."
+msgstr ""
+
+#: src/AdoClient.php
 msgid "For an Entra application: it must be added as a user of the Azure DevOps organization (Organization settings > Users) and have access to this project."
 msgstr ""
 
@@ -312,6 +316,10 @@ msgstr ""
 
 #: src/Project.php
 msgid "The organization and the Azure DevOps project name are required."
+msgstr ""
+
+#: src/Project.php
+msgid "Invalid line in the default fields (expected \"Reference.Name = value\", and not System.Title or System.Description): %s"
 msgstr ""
 
 #: src/Project.php
@@ -714,6 +722,38 @@ msgstr ""
 
 #: templates/project.html.twig
 msgid "Comma separated. An account with the \"Stakeholder\" access level can only use tags that already exist in the project: leave this empty, or create the tag first."
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Default fields"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value. Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored."
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Fields required by the process for this type"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Reference name"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Allowed values"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Has a value"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Needs a value"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Read from Azure DevOps at the last \"Save and test the connection\". Use the reference name in the default fields, with one of the allowed values."
 msgstr ""
 
 #: templates/project.html.twig

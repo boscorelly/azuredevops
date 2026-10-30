@@ -92,6 +92,7 @@ ctok = form_token(page, f'{P}/Config/Project')
 check('csrf token in the form', bool(ctok))
 
 print('== administrator: add a project with its token (save and test)')
+mock('/_mock/rules', {'project': 'Tata', 'type': 'Issue', 'fields': {'Microsoft.VSTS.Common.Priority': {'name': 'Priorité', 'allowed': ['1', '2', '3', '4']}}})
 before = sql("select count(*) from glpi_plugin_azuredevops_projects")
 s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': ctok, 'id': '0', 'name': 'WebProj', 'organization': 'https://dev.azure.com/acme/', 'ado_project': 'Tata',
                 'token': 'pat-tata', 'is_active': '1', 'is_restricted': '1', 'workitem_type': 'Issue', 'parent_types': 'Epic', 'followup_only_types': 'Epic',
@@ -105,6 +106,19 @@ s, page, _ = a.req(f'{P}/Config/Project/{new_id}')
 check('connection test message shown', either(page, 'Connection successful', 'Connexion réussie') and 'Bot Tata' in page, text(page)[:300])
 check('types now offered as a list', re.search(r'<select id="ado_type"', page) is not None and 'value="Issue" selected' in page)
 check('token still hidden', 'pat-tata' not in page)
+check('the form has the default fields box', 'name="default_fields"' in page)
+check('required fields of the type listed with their allowed values and what is missing', 'Microsoft.VSTS.Common.Priority' in page and 'Priorité' in page and '1, 2, 3, 4' in page and either(page, 'Needs a value', 'Valeur à renseigner'), text(page)[:200])
+ptok = form_token(page, f'{P}/Config/Project')
+s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': ptok, 'id': str(new_id), 'name': 'WebProj', 'organization': 'acme', 'ado_project': 'Tata', 'token': '', 'is_active': '1', 'is_restricted': '1',
+                'workitem_type': 'Issue', 'parent_types': 'Epic', 'followup_only_types': 'Epic', 'done_categories[]': ['Completed'], 'default_tags': 'glpi', 'groups[]': [str(g2)],
+                'default_fields': 'Microsoft.VSTS.Common.Priority = {priority}'})
+s, page, _ = a.req(f'{P}/Config/Project/{new_id}')
+check('default fields saved and shown, the required field is now covered', 'Microsoft.VSTS.Common.Priority = {priority}' in page and either(page, 'Has a value', 'Valeur renseignée') and not either(page, 'Needs a value', 'Valeur à renseigner'))
+s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': form_token(page, f'{P}/Config/Project'), 'id': str(new_id), 'name': 'WebProj', 'organization': 'acme', 'ado_project': 'Tata', 'token': '', 'is_active': '1', 'is_restricted': '1',
+                'workitem_type': 'Issue', 'parent_types': 'Epic', 'followup_only_types': 'Epic', 'done_categories[]': ['Completed'], 'default_tags': 'glpi', 'groups[]': [str(g2)], 'default_fields': 'garbage'})
+s, page, _ = a.req(f'{P}/Config/Project/{new_id}')
+check('an invalid default field is refused with a message, nothing lost', ('Reference.Name' in page or 'garbage' in page) and 'Microsoft.VSTS.Common.Priority = {priority}' in page, text(page)[:200])
+mock('/_mock/rules', {'project': 'Tata', 'type': 'Issue', 'fields': {}})
 
 s, page, _ = a.req(f'{P}/Config/Project', {'name': 'x', 'id': str(new_id)})
 check('project POST without CSRF rejected', s in (400, 403), str(s))
