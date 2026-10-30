@@ -223,7 +223,7 @@ final class ConfigController extends AbstractController
             'id' => 0, 'name' => '', 'organization' => '', 'ado_project' => '', 'is_active' => 1, 'is_restricted' => 1,
             'workitem_type' => '', 'parent_types' => 'Epic,Feature', 'followup_only_types' => 'Epic,Feature',
             'done_categories' => 'Completed', 'area_path' => '', 'default_tags' => 'glpi', 'last_error' => null,
-            'auth_mode' => 'pat', 'tenant_id' => '', 'client_id' => '', 'default_fields' => '', 'offered_types' => '', 'restrict_types' => 0,
+            'auth_mode' => 'pat', 'tenant_id' => '', 'client_id' => '', 'default_fields' => '', 'offered_types' => '', 'restrict_types' => 0, 'restrict_tags' => 0,
         ];
         $row = ($project ?? []) + $defaults;
         $id  = (int) $row['id'];
@@ -239,6 +239,8 @@ final class ConfigController extends AbstractController
             'has_secret' => $has_secret,
             'required_by_type' => $project !== null ? Project::requiredFieldsByType($project) : [],
             'offered_types'   => Project::csv($row['offered_types']),
+            'default_tags'    => Project::csv($row['default_tags']),
+            'tags_url'        => $id > 0 ? $this->url('/Config/Project/' . $id . '/Tags') : '',
             'types'     => $project !== null ? Project::typeNames($project) : [],
             'parent_types'  => Project::csv($row['parent_types']),
             'followup_only_types' => Project::csv($row['followup_only_types']),
@@ -252,6 +254,27 @@ final class ConfigController extends AbstractController
             'search_users_url'  => $this->url('/Config/Search/Users'),
             'search_groups_url' => $this->url('/Config/Search/Groups'),
         ]);
+    }
+
+    /**
+     * Existing tags of the project, to choose the default tags of the project.
+     */
+    #[Route('/Config/Project/{id}/Tags', name: 'azuredevops_project_tags', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function projectTags(Request $request, int $id): Response
+    {
+        $this->checkRight();
+        $project = Project::find($id);
+        if ($project === null) {
+            throw new NotFoundHttpException();
+        }
+
+        try {
+            $results = Project::tagResults($project, (string) $request->query->get('term', ''));
+        } catch (AdoException $e) {
+            return new JsonResponse(['results' => [], 'error' => $e->getMessage()], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse(['results' => $results, 'pagination' => ['more' => false]]);
     }
 
     // ------------------------------------------------------------ access search

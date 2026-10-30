@@ -197,6 +197,39 @@ check('a failing creation shows the message of Azure DevOps on the ticket', 'for
 check('the creation failure is in the plugin log', 'Creation failed' in log_text())
 mock('/_mock/fail', {'status': 0})
 
+
+print('== administrator: tags that exist in Azure DevOps')
+s, body, _ = a.req(f'{P}/Projects/{toto}/Tags?term=ur', headers=XH)
+check('the tags select box of the ticket gets the existing tags matching what is typed', s == 200 and [r['id'] for r in json.loads(body)['results']] == ['Urgent'], f'{s} {body[:200]}')
+s, body, _ = a.req(f'{P}/Projects/{toto}/Tags', headers=XH)
+check('without a term: all of them', s == 200 and [r['id'] for r in json.loads(body)['results']] == ['Backend', 'glpi', 'Urgent'], body[:200])
+s, body, _ = a.req(f'{P}/Config/Project/{toto}/Tags?term=back', headers=XH)
+check('the project form gets them too (configuration right)', s == 200 and [r['id'] for r in json.loads(body)['results']] == ['Backend'], f'{s} {body[:200]}')
+mock('/_mock/tags', {'project': 'Toto', 'fail': 500})
+def forget_tags(project_id):
+    """The tags are kept a few minutes in GLPI's cache: forget them to see the next error / change."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    subprocess.run(['php', os.path.join(here, 'forget_tags.php'), str(project_id)], env={'GLPI_ROOT': '/opt/glpi', 'PATH': '/usr/bin:/bin'}, capture_output=True)
+
+
+forget_tags(toto)
+s, body, _ = a.req(f'{P}/Projects/{toto}/Tags?term=x', headers=XH)
+check('an error of Azure DevOps is returned with its message (shown in the list) and logged', s == 502 and json.loads(body).get('error'), f'{s} {body[:200]}')
+check('the tags failure is in the plugin log', 'Tags not read' in log_text())
+mock('/_mock/tags', {'project': 'Toto'})
+s, pg, _ = tab(a, ticket_id, tok)
+m = re.search(r'id="ado_create_\d+"\s+data-config="([^"]*)"', pg)
+tc = (json.loads(html.unescape(m.group(1))) if m else {}).get(str(toto), {})
+check('the tab gives the form the default tags and whether only existing tags are allowed', tc.get('default_tags') == ['glpi'] and tc.get('restrict_tags') is False, str(tc))
+check('the tags select box is in the form', 'name="tags[]"' in pg and 'id="ado_tags_hint_' in pg)
+t10 = new_ticket()
+s, pg, _ = tab(a, t10, tok)
+s, _, h = a.req(f'{P}/Ticket/{t10}/WorkItem', {'_glpi_csrf_token': form_token(pg, f'{P}/Ticket/{t10}/WorkItem'), 'project_id': str(toto), 'followup': 'none', 'notify_requester': '0', 'tags[]': ['Urgent', 'Backend']})
+w10 = sql(f"select workitem_id from glpi_plugin_azuredevops_links where tickets_id={t10}")
+check('tags chosen in the form are sent (with the default ones)', w10 != '' and set(t.strip() for t in mock('/_mock/dump')['items'][w10]['fields']['System.Tags'].split(';')) == {'glpi', 'Urgent', 'Backend'}, w10)
+s, page, _ = a.req(f'{P}/Config/Project/{toto}')
+check('the project form: default tags as a list and the option for accounts that cannot create tags', 'name="default_tags[]"' in page and 'name="restrict_tags"' in page and re.search(r'<option value="glpi" selected', page) is not None)
+
 print('== administrator: create, link and unlink from the ticket tab')
 t2 = new_ticket()
 s, page, _ = tab(a, t2, tok)

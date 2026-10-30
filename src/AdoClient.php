@@ -376,6 +376,40 @@ class AdoClient
     }
 
     /**
+     * The tags that exist in the project (shared by its work items), sorted.
+     *
+     * @return string[]
+     *
+     * @throws AdoException
+     */
+    public function getTags(): array
+    {
+        // Depending on the version of the API, the list of the tags is stable or a preview: try both.
+        $last = null;
+        foreach ([self::API_VERSION, '7.1-preview.1'] as $version) {
+            try {
+                $res   = $this->request('GET', $this->project_url . '_apis/wit/tags', [], $version);
+                $names = [];
+                foreach ((array) ($res['data']['value'] ?? []) as $tag) {
+                    if (is_array($tag) && !empty($tag['name'])) {
+                        $names[] = (string) $tag['name'];
+                    }
+                }
+                natcasesort($names);
+
+                return array_values($names);
+            } catch (AdoException $e) {
+                if ($e->isGlobal() && $e->getKind() !== AdoException::SERVER) {
+                    throw $e;
+                }
+                $last = $e;
+            }
+        }
+
+        throw $last ?? new AdoException(__('Azure DevOps did not return the tags.', 'azuredevops'), AdoException::REQUEST);
+    }
+
+    /**
      * Read several work items in as few requests as possible. Work items that do not exist, or that the
      * token cannot read, are absent from the result.
      *

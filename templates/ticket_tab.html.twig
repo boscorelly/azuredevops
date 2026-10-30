@@ -103,7 +103,7 @@
                     <label class="form-label" for="ado_wtype_{{ rand }}">{{ __('Type', 'azuredevops') }}</label>
                     <select id="ado_wtype_{{ rand }}" name="work_item_type" class="form-select"></select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-5">
                     <label class="form-label" for="ado_parent_{{ rand }}">{{ __('Under (Epic, Feature…)', 'azuredevops') }}</label>
                     <select id="ado_parent_{{ rand }}" name="parent_id" class="form-select" style="width:100%"><option></option></select>
                 </div>
@@ -115,9 +115,12 @@
                         <option value="none" {{ default_followup == 'none' ? 'selected' }}>{{ __('None', 'azuredevops') }}</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+            </div>
+            <div class="row g-2 mt-1">
+                <div class="col-md-8">
                     <label class="form-label" for="ado_tags_{{ rand }}">{{ __('Additional tags', 'azuredevops') }}</label>
-                    <input id="ado_tags_{{ rand }}" type="text" name="tags" class="form-control">
+                    <select id="ado_tags_{{ rand }}" name="tags[]" class="form-select" multiple style="width:100%"></select>
+                    <div id="ado_tags_hint_{{ rand }}" class="form-text"></div>
                 </div>
             </div>
             <div id="ado_fields_title_{{ rand }}" class="mt-3 d-none"><span class="form-label">{{ __('Required by the process', 'azuredevops') }}</span></div>
@@ -238,8 +241,36 @@
                     $.each(project.types || [], function (i, t) { $type.append($('<option></option>').val(t).text(t).prop('selected', t === project['default'])); });
                 }
 
+                // Existing tags of the project in Azure DevOps; a new one can be typed unless the project only allows existing tags
+                var $tags = $('#ado_tags_{{ rand }}'), $tagsHint = $('#ado_tags_hint_{{ rand }}');
+                function renderTags() {
+                    var project = config[$cp.val()] || {};
+                    if ($tags.data('select2')) { $tags.select2('destroy'); }
+                    $tags.empty();
+                    $tags.select2({
+                        width: '100%', tags: !project.restrict_tags, tokenSeparators: [',', ';'], placeholder: {{ __('Choose or type tags…', 'azuredevops')|json_encode|raw }},
+                        ajax: {
+                            url: function () { return base + '/Projects/' + $cp.val() + '/Tags'; },
+                            dataType: 'json', delay: 300,
+                            data: function (params) { return {term: params.term || ''}; },
+                            transport: function (params, success, failure) {
+                                var request = $.ajax(params);
+                                request.then(success);
+                                request.fail(function (xhr) {
+                                    var message = xhr.responseJSON && xhr.responseJSON.error;
+                                    if (message) { success({results: [{id: '', text: '\u26A0 ' + message, disabled: true}]}); } else { failure(); }
+                                });
+                                return request;
+                            }
+                        }
+                    });
+                    var always = project.default_tags || [];
+                    $tagsHint.text(always.length ? {{ __('Always added:', 'azuredevops')|json_encode|raw }} + ' ' + always.join(', ') : '');
+                }
+
                 function syncCreate() {
                     var $o = $cp.find('option:selected');
+                    renderTags();
                     $parent.val(null).trigger('change').prop('disabled', $o.data('parents') != 1);
                     renderTypes();
                     renderFields();

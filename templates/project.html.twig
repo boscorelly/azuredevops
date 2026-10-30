@@ -161,15 +161,22 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label" for="ado_tags">{{ __('Default tags', 'azuredevops') }}</label>
-                    <input id="ado_tags" type="text" name="default_tags" class="form-control" value="{{ project.default_tags }}">
-                    <div class="form-text">{{ __('Comma separated. An account with the "Stakeholder" access level can only use tags that already exist in the project: leave this empty, or create the tag first.', 'azuredevops') }}</div>
+                    <select id="ado_tags" name="default_tags[]" class="form-select" multiple style="width:100%">
+                        {% for t in default_tags %}<option value="{{ t }}" selected>{{ t }}</option>{% endfor %}
+                    </select>
+                    <div class="form-text">{{ __('Added to every work item. The list offers the tags that exist in the project in Azure DevOps (once the project is saved with its credentials); a new one can be typed.', 'azuredevops') }}</div>
                 </div>
             </div>
+            <label class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="restrict_tags" value="1" {{ project.restrict_tags ? 'checked' }}>
+                <span class="form-check-label">{{ __('Only send tags that already exist in Azure DevOps', 'azuredevops') }}</span>
+            </label>
+            <div class="form-text ms-4 mb-3">{{ __('For an account that cannot create tags (the "Stakeholder" access level can only use existing ones): the other tags are left out, and the technician is told, instead of making the creation fail. In the ticket, only existing tags can then be chosen.', 'azuredevops') }}</div>
 
             <div class="mb-3">
                 <label class="form-label" for="ado_fields">{{ __('Default fields', 'azuredevops') }}</label>
                 <textarea id="ado_fields" name="default_fields" class="form-control font-monospace" rows="4" placeholder="Microsoft.VSTS.Common.Priority = {priority}">{{ project.default_fields }}</textarea>
-                <div class="form-text">{{ __('Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored.', 'azuredevops') }}</div>
+                <div class="form-text">{{ __('Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id}, {title}, {entity} (entity of the ticket), {category} (its category) and {requester} (its first requester). Lines starting with # are ignored.', 'azuredevops') }}</div>
             </div>
 
             {% for type_name, required_fields in required_by_type %}{% if required_fields is not empty %}
@@ -272,6 +279,11 @@
         $('#ado_groups').select2(search({{ search_groups_url|json_encode|raw }}, {{ __('Search a group…', 'azuredevops')|json_encode|raw }}));
         $('#ado_users').select2(search({{ search_users_url|json_encode|raw }}, {{ __('Search a user…', 'azuredevops')|json_encode|raw }}));
         $('#ado_parents, #ado_fonly, #ado_offered').select2({width: '100%'});
+        var tagsOptions = {width: '100%', tags: true, tokenSeparators: [',', ';']};
+        {% if tags_url %}
+        tagsOptions.ajax = {url: {{ tags_url|json_encode|raw }}, dataType: 'json', delay: 300, data: function (params) { return {term: params.term || ''}; }};
+        {% endif %}
+        $('#ado_tags').select2(tagsOptions);
     });
 </script>
 {% endblock %}

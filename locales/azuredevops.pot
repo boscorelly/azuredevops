@@ -81,6 +81,10 @@ msgid "Azure DevOps did not accept file %s"
 msgstr ""
 
 #: src/AdoClient.php
+msgid "Azure DevOps did not return the tags."
+msgstr ""
+
+#: src/AdoClient.php
 msgid "Azure DevOps did not return the work item."
 msgstr ""
 
@@ -142,6 +146,14 @@ msgstr ""
 
 #: src/ItemBuilder.php
 msgid "The value \"%1$s\" is not allowed for the field %2$s."
+msgstr ""
+
+#: src/ItemBuilder.php
+msgid "The tag \"%s\" was left out: it does not exist in Azure DevOps."
+msgstr ""
+
+#: src/ItemBuilder.php
+msgid "The tags could not be checked against Azure DevOps (%s): they were sent as chosen."
 msgstr ""
 
 #: src/ItemBuilder.php
@@ -749,7 +761,15 @@ msgid "Default tags"
 msgstr ""
 
 #: templates/project.html.twig
-msgid "Comma separated. An account with the \"Stakeholder\" access level can only use tags that already exist in the project: leave this empty, or create the tag first."
+msgid "Added to every work item. The list offers the tags that exist in the project in Azure DevOps (once the project is saved with its credentials); a new one can be typed."
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Only send tags that already exist in Azure DevOps"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "For an account that cannot create tags (the \"Stakeholder\" access level can only use existing ones): the other tags are left out, and the technician is told, instead of making the creation fail. In the ticket, only existing tags can then be chosen."
 msgstr ""
 
 #: templates/project.html.twig
@@ -757,7 +777,7 @@ msgid "Default fields"
 msgstr ""
 
 #: templates/project.html.twig
-msgid "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id} and {title}. Lines starting with # are ignored."
+msgid "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id}, {title}, {entity} (entity of the ticket), {category} (its category) and {requester} (its first requester). Lines starting with # are ignored."
 msgstr ""
 
 #: templates/project.html.twig
@@ -938,6 +958,14 @@ msgstr ""
 
 #: templates/ticket_tab.html.twig
 msgid "The fields of this type could not be read."
+msgstr ""
+
+#: templates/ticket_tab.html.twig
+msgid "Choose or type tags…"
+msgstr ""
+
+#: templates/ticket_tab.html.twig
+msgid "Always added:"
 msgstr ""
 
 #: templates/ticket_tab.html.twig

@@ -61,7 +61,7 @@ final class ItemBuilder
             'System.Title'       => $this->title($ticket, $settings['title_template']),
             'System.Description' => $html,
         ];
-        $tags = $this->tags((string) ($project['default_tags'] ?? ''), $extra_tags);
+        $tags = $this->tags($project, $extra_tags, $warnings);
         if ($tags !== '') {
             $fields['System.Tags'] = $tags;
         }
@@ -107,11 +107,35 @@ final class ItemBuilder
      */
     public static function resolve(string $value, Ticket $ticket): string
     {
-        return strtr($value, [
+        $replace = [
             '{id}'       => (string) $ticket->getID(),
             '{title}'    => (string) $ticket->fields['name'],
             '{priority}' => (string) self::azurePriority((int) $ticket->fields['priority']),
-        ]);
+        ];
+        // The other values are looked up only when the text uses them.
+        if (str_contains($value, '{entity}')) {
+            $replace['{entity}'] = self::plainName('glpi_entities', (int) $ticket->fields['entities_id']);
+        }
+        if (str_contains($value, '{category}')) {
+            $replace['{category}'] = self::plainName('glpi_itilcategories', (int) $ticket->fields['itilcategories_id']);
+        }
+        if (str_contains($value, '{requester}')) {
+            $requesters = $ticket->getUsers(CommonITILActor::REQUESTER);
+            $first      = reset($requesters);
+            $replace['{requester}'] = is_array($first) && (int) $first['users_id'] > 0 ? ProjectAccess::userName((int) $first['users_id']) : (string) ($first['alternative_email'] ?? '');
+        }
+
+        return strtr($value, $replace);
+    }
+
+    private static function plainName(string $table, int $id): string
+    {
+        if ($id < 0 || ($id === 0 && $table !== 'glpi_entities')) {
+            return '';
+        }
+        $name = html_entity_decode(strip_tags((string) Dropdown::getDropdownName($table, $id)), ENT_QUOTES | ENT_HTML5);
+
+        return trim(str_replace("\u{a0}", ' ', $name));
     }
 
     /**
@@ -209,13 +233,41 @@ final class ItemBuilder
         return mb_substr($title, 0, 255);
     }
 
-    private function tags(string $default, string $extra): string
+    /**
+     * The tags to send: the project's default ones and those chosen in the ticket, without duplicates. When the project
+     * only allows existing tags (an account that cannot create tags, such as a Stakeholder), the others are left out and
+     * the technician is told.
+     *
+     * @param array<string, mixed> $project
+     * @param string[]             $warnings
+     */
+    private function tags(array $project, string $extra, array &$warnings): string
     {
         $tags = [];
-        foreach (explode(',', str_replace(';', ',', $default . ',' . $extra)) as $tag) {
+        foreach (explode(',', str_replace(';', ',', ((string) ($project['default_tags'] ?? '')) . ',' . $extra)) as $tag) {
             $tag = trim($tag);
             if ($tag !== '' && !isset($tags[mb_strtolower($tag)])) {
                 $tags[mb_strtolower($tag)] = $tag; // first spelling wins
+            }
+        }
+
+        if ($tags !== [] && !empty($project['restrict_tags'])) {
+            try {
+                $existing = [];
+                foreach (Project::tags($project) as $name) {
+                    $existing[mb_strtolower($name)] = $name;
+                }
+                foreach ($tags as $key => $tag) {
+                    if (isset($existing[$key])) {
+                        $tags[$key] = $existing[$key];   // the spelling of Azure DevOps
+                    } else {
+                        unset($tags[$key]);
+                        $warnings[] = sprintf(__('The tag "%s" was left out: it does not exist in Azure DevOps.', 'azuredevops'), $tag);
+                    }
+                }
+            } catch (AdoException $e) {
+                // Not able to check: send them as chosen, and say so.
+                $warnings[] = sprintf(__('The tags could not be checked against Azure DevOps (%s): they were sent as chosen.', 'azuredevops'), $e->getMessage());
             }
         }
 

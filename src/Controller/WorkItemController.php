@@ -40,7 +40,7 @@ final class WorkItemController extends AbstractController
                 (int) $request->request->get('project_id', 0),
                 (int) Session::getLoginUserID(),
                 (int) $request->request->get('parent_id', 0),
-                (string) $request->request->get('tags', ''),
+                $this->tagsFrom($request),
                 $request->request->getBoolean('allow_duplicate'),
                 (string) $request->request->get('followup', ''),
                 $request->request->has('notify_requester') ? $request->request->getBoolean('notify_requester') : null,
@@ -191,7 +191,45 @@ final class WorkItemController extends AbstractController
         return new JsonResponse(['fields' => ItemBuilder::formFields($project, $ticket, $type)]);
     }
 
+    /**
+     * Existing tags of the project in Azure DevOps, for the "tags" select box of the creation form.
+     */
+    #[Route('/Projects/{id}/Tags', name: 'azuredevops_tags', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function tags(Request $request, int $id): Response
+    {
+        if (!Link::canCreate()) {
+            throw new AccessDeniedHttpException();
+        }
+        $project = Project::find($id);
+        if ($project === null || !ProjectAccess::canUse($project, (int) Session::getLoginUserID())) {
+            throw new AccessDeniedHttpException();
+        }
+
+        try {
+            $results = Project::tagResults($project, (string) $request->query->get('term', ''));
+        } catch (AdoException $e) {
+            Toolbox::logInFile('azuredevops', sprintf("Tags not read (project %d): %s\n", $id, $e->getMessage()));
+
+            return new JsonResponse(['results' => [], 'error' => $e->getMessage()], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse(['results' => $results, 'pagination' => ['more' => false]]);
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    /**
+     * Tags chosen in the form, as the comma separated text the builder takes (the form sends a list; an older one a text).
+     */
+    private function tagsFrom(Request $request): string
+    {
+        $tags = $request->request->all()['tags'] ?? '';
+        if (is_array($tags)) {
+            $tags = implode(',', array_filter($tags, 'is_scalar'));
+        }
+
+        return (string) $tags;
+    }
 
     private function getReadableTicket(int $id): Ticket
     {

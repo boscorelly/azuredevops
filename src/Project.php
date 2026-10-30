@@ -235,7 +235,9 @@ final class Project
             'followup_only_types' => mb_substr($list($input['followup_only_types'] ?? ''), 0, 255),
             'done_categories'     => implode(',', $done),
             'area_path'           => $str('area_path') !== '' ? mb_substr($str('area_path'), 0, 512) : null,
-            'default_tags'        => mb_substr($str('default_tags'), 0, 255),
+            'default_tags'        => mb_substr(is_array($input['default_tags'] ?? null) ? implode(',', array_map('strval', $input['default_tags'])) : $str('default_tags'), 0, 255),
+            // 1 = only the tags that already exist in Azure DevOps are sent (an account that cannot create tags)
+            'restrict_tags'       => !empty($input['restrict_tags']) ? 1 : 0,
             'default_fields'      => $default_entries !== [] ? self::formatDefaultFields($default_entries) : null,
             'date_mod'            => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
         ];
@@ -287,6 +289,7 @@ final class Project
         }
 
         $DB->update(self::getTable(), $values, ['id' => $id]);
+        self::forgetTags($id);
 
         return $id;
     }
@@ -326,6 +329,77 @@ final class Project
         }
         ProjectAccess::clearProject($id);
         $DB->delete(self::getTable(), ['id' => $id]);
+    }
+
+    // ------------------------------------------------------------------ tags
+
+    private const TAGS_TTL = 300;
+
+    /**
+     * The tags that exist in the project in Azure DevOps. Kept five minutes (the lists of the forms ask for them often).
+     *
+     * @return string[]
+     *
+     * @throws AdoException
+     */
+    public static function tags(array $project): array
+    {
+        /** @var \Psr\SimpleCache\CacheInterface|null $GLPI_CACHE */
+        global $GLPI_CACHE;
+
+        $key = 'azuredevops_tags_' . (int) $project['id'];
+        try {
+            $cached = $GLPI_CACHE?->get($key);
+            if (is_array($cached)) {
+                return $cached;
+            }
+        } catch (\Throwable) {
+            // no cache: ask Azure DevOps
+        }
+
+        $tags = self::client($project)->getTags();
+        try {
+            $GLPI_CACHE?->set($key, $tags, self::TAGS_TTL);
+        } catch (\Throwable) {
+            // only a cache
+        }
+
+        return $tags;
+    }
+
+    public static function forgetTags(int $id): void
+    {
+        /** @var \Psr\SimpleCache\CacheInterface|null $GLPI_CACHE */
+        global $GLPI_CACHE;
+
+        try {
+            $GLPI_CACHE?->delete('azuredevops_tags_' . $id);
+        } catch (\Throwable) {
+            // only a cache
+        }
+    }
+
+    /**
+     * Tags matching what the technician typed, for the select boxes.
+     *
+     * @return array<int, array{id: string, text: string}>
+     *
+     * @throws AdoException
+     */
+    public static function tagResults(array $project, string $term, int $limit = 50): array
+    {
+        $term    = mb_strtolower(trim($term));
+        $results = [];
+        foreach (self::tags($project) as $tag) {
+            if ($term === '' || str_contains(mb_strtolower($tag), $term)) {
+                $results[] = ['id' => $tag, 'text' => $tag];
+                if (count($results) >= $limit) {
+                    break;
+                }
+            }
+        }
+
+        return $results;
     }
 
     // ------------------------------------------------------ types to create

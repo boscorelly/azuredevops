@@ -28,7 +28,8 @@ Testé sur **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) contre un mock de l'API RES
 | Types « suivi uniquement » | Types (Epic, Feature…) dont la fin ajoute seulement un suivi privé et ne résout jamais le ticket |
 | Catégories « terminé » | `Completed` (toujours) et éventuellement `Resolved`. Les catégories viennent du modèle de processus : états et processus personnalisés fonctionnent sans configuration |
 | Champs par défaut | Valeurs des champs que votre processus rend obligatoires (Priorité…), voir ci-dessous |
-| Area path, tags par défaut | Facultatifs |
+| Area path | Facultatif |
+| Tags par défaut | Ajoutés à chaque élément ; la liste propose les tags qui existent dans le projet Azure DevOps. *N'envoyer que des tags qui existent déjà* est pour un compte qui ne peut pas créer de tags (Stakeholder) |
 
 Les identifiants expirent ou sont révoqués : quand ils sont refusés, l'erreur s'affiche dans la liste des projets et sur les tickets concernés, les autres projets continuent d'être vérifiés, et saisir de nouveaux identifiants efface l'erreur.
 
@@ -48,7 +49,7 @@ Custom.Reference = GLPI-{id}: {title}
 
 **Dans l'onglet du ticket**, le formulaire de création affiche alors ces champs (par exemple *Priorité*) avec les valeurs autorisées dans une liste, **préselectionnées** d'après les champs par défaut, la valeur par défaut du processus ou, pour la Priorité, la priorité du ticket : le technicien peut les modifier pour chaque élément. Les champs par défaut servent aux valeurs qu'il ne faut pas demander.
 
-Variables : `{priority}` est la priorité du ticket sur l'échelle d'Azure DevOps (GLPI 5-6 → 1, 4 → 2, 3 → 3, 1-2 → 4 ; utilisez une valeur fixe si votre processus a d'autres valeurs), `{id}` le numéro du ticket, `{title}` son titre. Utilisez exactement l'une des **valeurs autorisées** listées. Les champs qui ont une valeur par défaut dans le processus la reçoivent d'Azure DevOps et n'ont besoin de rien.
+Variables : `{priority}` est la priorité du ticket sur l'échelle d'Azure DevOps (GLPI 5-6 → 1, 4 → 2, 3 → 3, 1-2 → 4 ; utilisez une valeur fixe si votre processus a d'autres valeurs), `{id}` le numéro du ticket, `{title}` son titre, `{entity}` son entité GLPI, `{category}` sa catégorie et `{requester}` son premier demandeur (par exemple `Custom.Client = {entity}` pour renseigner un champ client). Utilisez exactement l'une des **valeurs autorisées** listées. Les champs qui ont une valeur par défaut dans le processus la reçoivent d'Azure DevOps et n'ont besoin de rien.
 
 ### S'authentifier sans compte personnel (application Microsoft Entra)
 

@@ -2,6 +2,12 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.7
+- **Tags: the tags that exist in the project in Azure DevOps are offered** in the creation form (a list that searches as you type), with the possibility to type a new one. They are read from Azure DevOps and kept five minutes. The *Default tags* of the project use the same list.
+- New project option **Only send tags that already exist in Azure DevOps**, for an account that cannot create tags (the Stakeholder access level): the other tags are left out and the technician is told, instead of making the creation fail. In the ticket only existing tags can then be chosen; if the list cannot be read, the work item is created anyway and the technician is warned.
+- Default fields can take values from GLPI: `{entity}` (entity of the ticket), `{category}` (its category) and `{requester}` (its first requester), next to `{priority}`, `{id}` and `{title}` — for example `Custom.Client = {entity}` to fill a customer field.
+- Update from 1.0.6: one column is added to the projects table.
+
 ## 1.0.6
 - **Every type of the project is now offered in the ticket by default** (User Story, Bug, Task, Epic...), as read from Azure DevOps at the connection test, the default type first. In 1.0.5 only the default type was offered unless other types were picked in the project: that was not what was asked for.
 - Restricting the list is now an explicit option of the project: *Only offer some types in the ticket*, then the types to offer (the default type is always offered).

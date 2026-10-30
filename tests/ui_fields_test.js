@@ -7,7 +7,7 @@ const options = [...html.matchAll(/<option value="(\d+)" data-parents="(\d)">([^
 const byName = Object.fromEntries(options.map(o => [o.name, o.id]));
 const data = {};
 data[byName['Tata']] = {
-  'default': 'Issue', types: ['Issue', 'Bug', 'Task'],
+  'default': 'Issue', types: ['Issue', 'Bug', 'Task'], default_tags: ['glpi', 'client x'], restrict_tags: true,
   fields: {
     'Issue': [
       {ref: 'Microsoft.VSTS.Common.Priority', name: 'Priorité', allowed: ['1','2','3','4'], value: '2'},
@@ -17,7 +17,7 @@ data[byName['Tata']] = {
     'Task': null,
   },
 };
-data[byName['Toto']] = {'default': 'User Story', types: ['User Story'], fields: {'User Story': []}};
+data[byName['Toto']] = {'default': 'User Story', types: ['User Story'], fields: {'User Story': []}, default_tags: [], restrict_tags: false};
 let page = html.replace(/data-config="[^"]*"/, 'data-config="' + JSON.stringify(data).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '"');
 const dom = new JSDOM('<body>' + page + '</body>', {runScripts: 'outside-only', url: 'http://localhost/'});
 const w = dom.window;
@@ -42,7 +42,12 @@ const sel = $('select[id^=ado_cp_]');
 const pick = (id) => { sel.val(id).trigger('change'); };
 
 t('first project (no required field): nothing shown, title hidden', box.children().length === 0 && title.hasClass('d-none'), box.html());
+const hint = $('[id^=ado_tags_hint_]');
+const tagsSel = $('select[name="tags[]"]');
+t('the tags select box exists in the form', tagsSel.length === 1 && tagsSel.prop('multiple') === true);
+t('no default tag: no hint', hint.text() === '', hint.text());
 pick(byName['Tata']);
+t('the tags always added by the project are shown as a hint', hint.text().includes('glpi') && hint.text().includes('client x'), hint.text());
 const prio = box.find('select[name="fields[Microsoft.VSTS.Common.Priority]"]');
 t('Tata: a list for the Priority with an empty choice and the 4 allowed values', prio.length === 1 && prio.find('option').length === 5 && prio.find('option').first().val() === '', prio.html());
 t('the suggested value is preselected', prio.val() === '2', String(prio.val()));
@@ -72,6 +77,7 @@ typeSel.val('Task').trigger('change');
 t('choosing it again asks again (the failed answer was not kept)', pending !== null);
 typeSel.val('Issue').trigger('change');
 pick(byName['Toto']);
+t('switching project updates the tags hint', hint.text() === '', hint.text());
 t('switching project resets the type list to that project', typeSel.find('option').map((i, o) => o.value).get().join() === 'User Story' && typeSel.val() === 'User Story');
 t('switching to a project without required field clears them', box.children().length === 0 && title.hasClass('d-none'));
 pick(byName['Tata']);

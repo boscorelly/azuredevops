@@ -17,7 +17,7 @@ use GlpiPlugin\Azuredevops\RequesterNotice;
 use GlpiPlugin\Azuredevops\Settings;
 use GlpiPlugin\Azuredevops\Sync;
 
-global $DB, $PLUGIN_HOOKS;
+global $DB, $PLUGIN_HOOKS, $GLPI_CACHE;
 
 $pass = 0; $fail = 0;
 function ok(string $name, bool $cond, string $detail = ''): void {
@@ -585,6 +585,52 @@ Project::ensureRequiredFields($toto, 'Task');
 ok('not read again once known', $reads() === $r0 + 1);
 mock('/_mock/rules', ['project' => 'Toto', 'type' => 'Task', 'fields' => []]);
 Project::testAndCache($toto);
+
+echo "== Tags that exist in Azure DevOps\n";
+$cl = Project::client(Project::find($toto));
+ok('the tags of the project are read from Azure DevOps, sorted without regard to case', $cl->getTags() === ['Backend', 'glpi', 'Urgent'], json_encode($cl->getTags()));
+mock('/_mock/tags', ['project' => 'Toto', 'preview_only' => true]);
+$tagReads = fn() => requests('GET /acme/Toto/_apis/wit/tags');
+$n0 = count($tagReads());
+ok('stable version of the API refused: the preview version is tried', $cl->getTags() === ['Backend', 'glpi', 'Urgent'] && count($tagReads()) === $n0 + 2 && str_contains(end($tagReads())['query'], '7.1-preview.1'));
+mock('/_mock/tags', ['project' => 'Toto']);
+Project::forgetTags($toto);
+$ptoto = Project::find($toto);
+ok('search among the tags (contains, any case) and limit', array_column(Project::tagResults($ptoto, 'ur'), 'id') === ['Urgent'] && count(Project::tagResults($ptoto, '')) === 3 && count(Project::tagResults($ptoto, '', 2)) === 2 && Project::tagResults($ptoto, 'zzz') === []);
+Project::forgetTags($toto);
+$n1 = count($tagReads()); Project::tags($ptoto); Project::tags($ptoto);
+ok('the tags are kept a few minutes: one request for several lookups', count($tagReads()) - $n1 === (isset($GLOBALS['GLPI_CACHE']) ? 1 : 2));
+Project::saveFromInput($totoInput(['default_tags' => ['glpi', 'ghost'], 'restrict_tags' => 1]), $toto);
+ok('default tags saved from a list, and the restriction flag', Project::find($toto)['default_tags'] === 'glpi,ghost' && (int) Project::find($toto)['restrict_tags'] === 1);
+$r = Link::createFromTicket(newTicket('Tags'), $toto, 2, 0, 'Urgent, Nope', false, 'none', false);
+ok('only the tags that exist are sent (spelling of Azure DevOps); the others are left out', item((int) $r['link']->fields['workitem_id'])['fields']['System.Tags'] === 'glpi; Urgent', (string) item((int) $r['link']->fields['workitem_id'])['fields']['System.Tags']);
+ok('the technician is told which ones were left out', count($r['warnings']) === 2 && str_contains(implode(' ', $r['warnings']), 'ghost') && str_contains(implode(' ', $r['warnings']), 'Nope'), json_encode($r['warnings']));
+Project::saveFromInput($totoInput(['default_tags' => ['glpi', 'ghost'], 'restrict_tags' => 0]), $toto);
+$r2 = Link::createFromTicket(newTicket('Tags 2'), $toto, 2, 0, 'urgent; Glpi', false, 'none', false);
+ok('not restricted: every tag is sent as typed (new ones too), duplicates in any case removed', item((int) $r2['link']->fields['workitem_id'])['fields']['System.Tags'] === 'glpi; ghost; urgent' && $r2['warnings'] === [], (string) item((int) $r2['link']->fields['workitem_id'])['fields']['System.Tags']);
+Project::saveFromInput($totoInput(['default_tags' => ['glpi'], 'restrict_tags' => 1]), $toto);
+mock('/_mock/tags', ['project' => 'Toto', 'fail' => 500]);
+$r3 = Link::createFromTicket(newTicket('Tags 3'), $toto, 2, 0, 'Whatever', false, 'none', false);
+ok('the list of the tags is unavailable: the work item is created anyway, tags as chosen, the technician is told', item((int) $r3['link']->fields['workitem_id'])['fields']['System.Tags'] === 'glpi; Whatever' && str_contains(implode(' ', $r3['warnings']), 'could not be checked'), json_encode($r3['warnings']));
+try { Project::tagResults(Project::find($toto), 'x'); ok('tags error', false); } catch (AdoException $e) { ok('the select box gets the error of Azure DevOps when the list cannot be read', $e->getKind() === AdoException::SERVER || $e->getKind() === AdoException::REQUEST || $e->getKind() === AdoException::NOT_FOUND, $e->getMessage()); }
+mock('/_mock/tags', ['project' => 'Toto']);
+Project::saveFromInput($totoInput(['default_tags' => 'glpi', 'restrict_tags' => 0]), $toto);
+
+echo "== Values from GLPI in the default fields ({entity}, {category}, {requester})\n";
+$DB->insert('glpi_itilcategories', ['name' => 'Réseau', 'completename' => 'Réseau', 'entities_id' => 0, 'is_recursive' => 1, 'level' => 1]);
+$catid = (int) $DB->insertId();
+$tpl = newTicket('Champ client');
+$DB->update('glpi_tickets', ['itilcategories_id' => $catid], ['id' => $tpl->getID()]); $tpl->getFromDB($tpl->getID());
+$entityName = trim(str_replace("\u{a0}", ' ', html_entity_decode(strip_tags((string) Dropdown::getDropdownName('glpi_entities', 0)), ENT_QUOTES | ENT_HTML5)));
+ok('placeholders: entity, category, requester (and the older ones)', ItemBuilder::resolve('{entity} | {category} | {requester} | {id}', $tpl) === $entityName . ' | Réseau | ' . ProjectAccess::userName(2) . ' | ' . $tpl->getID(), ItemBuilder::resolve('{entity} | {category} | {requester} | {id}', $tpl));
+ok('a ticket without category gives an empty {category}', ItemBuilder::resolve('[{category}]', newTicket('Sans categorie')) === '[]');
+Project::saveFromInput($totoInput(['default_fields' => "Custom.Client = {entity}\nCustom.Domaine = {category}"]), $toto);
+$rcl = Link::createFromTicket($tpl, $toto, 2, 0, '', false, 'none', false);
+$cf = item((int) $rcl['link']->fields['workitem_id'])['fields'];
+ok('a field such as "Client" can be filled from the entity of the ticket', ($cf['Custom.Client'] ?? '') === $entityName && ($cf['Custom.Domaine'] ?? '') === 'Réseau', json_encode($cf));
+Project::saveFromInput($totoInput(['default_fields' => '']), $toto);
+$DB->update('glpi_tickets', ['itilcategories_id' => 0], ['id' => $tpl->getID()]);
+$DB->delete('glpi_itilcategories', ['id' => $catid]);
 
 echo "== Microsoft Entra application instead of a personal token\n";
 $signins = fn() => count(mock('/_mock/dump')['token_requests']);

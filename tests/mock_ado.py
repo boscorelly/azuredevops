@@ -19,6 +19,8 @@ Control endpoints (not part of Azure DevOps), JSON bodies:
   POST /_mock/entra   {"expires_in":3600,"secret_expired":false,"org_access":true}   behaviour of the Entra sign-in
   POST /_mock/rules   {"project":"Tata","type":"Issue","fields":{"Microsoft.VSTS.Common.Priority":{"name":"Priorité","allowed":["1","2","3","4"]}}}
                                                                       fields the process requires when creating that type ({} = none)
+  POST /_mock/tags    {"project":"Toto","tags":["Backend","Urgent"],"preview_only":false,"fail":0}
+                                                                      tags of a project; preview_only = the stable API version answers 404; fail = HTTP status of the tags list
   POST /_mock/revoke_bearers                                          every access token issued so far stops working
   GET  /_mock/dump    -> everything received so far
   POST /_mock/reset
@@ -65,7 +67,7 @@ state = {}
 def reset():
     state.clear()
     state.update({'items': {}, 'attachments': {}, 'requests': [], 'next_id': 100, 'fail': 0, 'retry_after': 0, 'token_mode': '401',
-                  'bearers': {}, 'token_requests': [], 'rules': {}, 'entra': {'expires_in': 3600, 'secret_expired': False, 'org_access': True}})
+                  'bearers': {}, 'token_requests': [], 'rules': {}, 'tags': {'Toto': ['Backend', 'Urgent', 'glpi'], 'Tata': ['Infra', 'glpi']}, 'tags_flags': {}, 'entra': {'expires_in': 3600, 'secret_expired': False, 'org_access': True}})
 
 
 reset()
@@ -254,6 +256,14 @@ class H(BaseHTTPRequestHandler):
                 value.append(e)
             value.append({'name': 'Hidden Type', 'isDisabled': True})
             return self.send(200, {'count': len(value), 'value': value})
+        if api == 'wit/tags' and method == 'GET':
+            flags = state['tags_flags'].get(project, {})
+            if flags.get('fail'):
+                return self.error(int(flags['fail']), 'tags list failed')
+            if flags.get('preview_only') and (qs.get('api-version') or [''])[0] == '7.1':
+                return self.error(404, 'VS402892: the requested API version is not available')
+            names = state['tags'].get(project, [])
+            return self.send(200, {'count': len(names), 'value': [{'id': 'tag-%d' % i, 'name': n, 'url': 'x'} for i, n in enumerate(names)]})
         mm = re.match(r'^wit/workitemtypes/([^/]+)/fields$', api)
         if mm and method == 'GET':
             t = proj['types'].get(mm.group(1))
@@ -368,6 +378,11 @@ class H(BaseHTTPRequestHandler):
                 state['rules'][key] = data['fields']
             else:
                 state['rules'].pop(key, None)
+            return self.send(200, {})
+        if path == '/_mock/tags':
+            if 'tags' in data:
+                state['tags'][data['project']] = data['tags']
+            state['tags_flags'][data['project']] = {'preview_only': bool(data.get('preview_only')), 'fail': int(data.get('fail', 0))}
             return self.send(200, {})
         if path == '/_mock/entra':
             state['entra'].update(data)

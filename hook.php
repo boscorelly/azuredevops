@@ -139,6 +139,8 @@ function plugin_azuredevops_install(): bool
         'offered_types'        => "VARCHAR(512) NOT NULL DEFAULT ''",
         // 1.0.6: 0 = every type read from Azure DevOps is offered in the ticket, 1 = only the default one and offered_types
         'restrict_types'       => "TINYINT NOT NULL DEFAULT '0'",
+        // 1.0.7: 1 = only tags that already exist in Azure DevOps are sent (accounts that cannot create tags)
+        'restrict_tags'        => "TINYINT NOT NULL DEFAULT '0'",
     ] as $field => $definition) {
         if (!$DB->fieldExists($projects_table, $field)) {
             $DB->doQuery("ALTER TABLE `$projects_table` ADD COLUMN `$field` $definition");
