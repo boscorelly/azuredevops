@@ -1,0 +1,192 @@
+<div class="card m-3">
+    <div class="card-header">
+        <h3 class="card-title"><i class="ti ti-brand-azure me-2"></i>{{ __('Azure DevOps work items', 'azuredevops') }}</h3>
+    </div>
+
+    {% if links is empty %}
+        <div class="card-body text-muted">{{ __('No Azure DevOps work item is linked to this ticket.', 'azuredevops') }}</div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead>
+                    <tr>
+                        <th>{{ __('Work item', 'azuredevops') }}</th>
+                        <th>{{ __('Status', 'azuredevops') }}</th>
+                        <th>{{ __('Last check', 'azuredevops') }}</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for link in links %}
+                    <tr>
+                        <td>
+                            {% if link.chain is not empty %}
+                                <div class="text-muted small mb-1">
+                                    {% for c in link.chain %}
+                                        {% if c.url starts with 'http://' or c.url starts with 'https://' %}<a href="{{ c.url }}" target="_blank" rel="noopener">{{ c.type }} #{{ c.id }} {{ c.title }}</a>{% else %}{{ c.type }} #{{ c.id }} {{ c.title }}{% endif %}
+                                        <i class="ti ti-chevron-right"></i>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if link.workitem_type %}<span class="badge bg-secondary-lt me-1">{{ link.workitem_type }}</span>{% endif %}
+                            {% if link.url starts with 'http://' or link.url starts with 'https://' %}
+                                <a href="{{ link.url }}" target="_blank" rel="noopener">#{{ link.workitem_id }}</a>
+                            {% else %}
+                                #{{ link.workitem_id }}
+                            {% endif %}
+                            <span class="text-muted small ms-1">{{ link.project_name }}</span>
+                            <div class="text-muted small">{{ link.title }}</div>
+                        </td>
+                        <td>
+                            {% set badge = {'opened': 'bg-green-lt', 'closed': 'bg-blue-lt', 'missing': 'bg-red-lt', 'moved': 'bg-orange-lt', 'removed': 'bg-orange-lt'}[link.state] ?? 'bg-secondary-lt' %}
+                            <span class="badge {{ badge }}">{{ link.state_label }}</span>
+                            {% if link.ado_state %}<div class="text-muted small">{{ link.ado_state }}</div>{% endif %}
+                            {% if link.state == 'closed' and link.date_closed %}
+                                <div class="text-muted small">{{ link.date_closed }}{% if link.closed_by %} – {{ link.closed_by }}{% endif %}</div>
+                            {% endif %}
+                            {% if link.last_error %}
+                                <div class="text-danger small">{{ link.last_error }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ link.date_last_check }}</td>
+                        <td class="text-end">
+                            {% if can_update and link.state == 'opened' %}
+                                <form method="post" action="{{ base }}/Link/{{ link.id }}/Refresh" class="d-inline">
+                                    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="ti ti-refresh"></i> {{ __('Refresh', 'azuredevops') }}</button>
+                                </form>
+                            {% endif %}
+                            {% if can_delete %}
+                                <form method="post" action="{{ base }}/Link/{{ link.id }}/Unlink" class="d-inline"
+                                      onsubmit="return confirm('{{ __('Stop following this work item? It will not be changed on Azure DevOps.', 'azuredevops')|e('js') }}');">
+                                    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit"><i class="ti ti-unlink"></i> {{ __('Unlink', 'azuredevops') }}</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if hidden_count > 0 %}
+        <div class="card-footer text-muted small">
+            <i class="ti ti-lock"></i> {{ _n('%d other work item is linked to a project you cannot use.', '%d other work items are linked to projects you cannot use.', hidden_count, 'azuredevops')|format(hidden_count) }}
+        </div>
+    {% endif %}
+
+    {% if not any_project %}
+        <div class="card-footer text-muted">
+            {{ __('The plugin is not configured yet.', 'azuredevops') }}
+            {% if can_config %}<a href="{{ base }}/Config">{{ __('Configure it', 'azuredevops') }}</a>{% endif %}
+        </div>
+    {% elseif projects is empty %}
+        <div class="card-footer text-muted">{{ __('No Azure DevOps project is available to you. Ask an administrator to add your group or your user to a project.', 'azuredevops') }}</div>
+    {% elseif can_create %}
+        {% set rand = random() %}
+        <form method="post" action="{{ base }}/Ticket/{{ ticket_id }}/WorkItem" class="card-footer">
+            <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+            <h4 class="mb-2">{{ __('Create a work item', 'azuredevops') }}</h4>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label" for="ado_cp_{{ rand }}">{{ __('Project', 'azuredevops') }}</label>
+                    <select id="ado_cp_{{ rand }}" name="project_id" class="form-select" required>
+                        {% for p in projects %}{% if p.ready %}
+                            <option value="{{ p.id }}" data-type="{{ p.type }}" data-parents="{{ p.has_parents ? 1 : 0 }}">{{ p.name }}</option>
+                        {% endif %}{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="ado_parent_{{ rand }}">{{ __('Under (Epic, Feature…)', 'azuredevops') }}</label>
+                    <select id="ado_parent_{{ rand }}" name="parent_id" class="form-select" style="width:100%"><option></option></select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="ado_followup_{{ rand }}">{{ __('Followup on the ticket', 'azuredevops') }}</label>
+                    <select id="ado_followup_{{ rand }}" name="followup" class="form-select">
+                        <option value="private" {{ default_followup == 'private' ? 'selected' }}>{{ __('Private', 'azuredevops') }}</option>
+                        <option value="public" {{ default_followup == 'public' ? 'selected' }}>{{ __('Public', 'azuredevops') }}</option>
+                        <option value="none" {{ default_followup == 'none' ? 'selected' }}>{{ __('None', 'azuredevops') }}</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="ado_tags_{{ rand }}">{{ __('Additional tags', 'azuredevops') }}</label>
+                    <input id="ado_tags_{{ rand }}" type="text" name="tags" class="form-control">
+                </div>
+            </div>
+            <div class="text-muted small mt-2">{{ __('A work item of type', 'azuredevops') }} <strong id="ado_type_{{ rand }}"></strong> {{ __('will be created.', 'azuredevops') }}</div>
+            <input type="hidden" name="notify_requester" value="0">
+            <label class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="notify_requester" value="1" {{ default_notify ? 'checked' }}>
+                <span class="form-check-label">{{ __('Inform the requester with a public followup', 'azuredevops') }}</span>
+            </label>
+            <div class="form-text ms-4">« {{ notice_text }} »</div>
+            {% if links is not empty %}
+                <label class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" name="allow_duplicate" value="1">
+                    <span class="form-check-label">{{ __('Create another work item even if one is already open in this project', 'azuredevops') }}</span>
+                </label>
+            {% endif %}
+            <button type="submit" class="btn btn-primary mt-3"><i class="ti ti-brand-azure"></i> {{ __('Create the work item', 'azuredevops') }}</button>
+        </form>
+
+        <form method="post" action="{{ base }}/Ticket/{{ ticket_id }}/WorkItem/Link" class="card-footer border-top">
+            <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+            <h4 class="mb-2">{{ __('Link an existing work item', 'azuredevops') }}</h4>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label" for="ado_lp_{{ rand }}">{{ __('Project', 'azuredevops') }}</label>
+                    <select id="ado_lp_{{ rand }}" name="project_id" class="form-select" required>
+                        {% for p in projects %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label" for="ado_item_{{ rand }}">{{ __('Work item (title or number)', 'azuredevops') }}</label>
+                    <select id="ado_item_{{ rand }}" name="workitem_id" class="form-select" required style="width:100%"><option></option></select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="ado_lfollowup_{{ rand }}">{{ __('Followup on the ticket', 'azuredevops') }}</label>
+                    <select id="ado_lfollowup_{{ rand }}" name="followup" class="form-select">
+                        <option value="private" {{ default_followup == 'private' ? 'selected' }}>{{ __('Private', 'azuredevops') }}</option>
+                        <option value="public" {{ default_followup == 'public' ? 'selected' }}>{{ __('Public', 'azuredevops') }}</option>
+                        <option value="none" {{ default_followup == 'none' ? 'selected' }}>{{ __('None', 'azuredevops') }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary w-100"><i class="ti ti-link"></i> {{ __('Link', 'azuredevops') }}</button>
+                </div>
+            </div>
+        </form>
+
+        <script>
+            $(function () {
+                var base = {{ base|json_encode|raw }};
+                var $cp = $('#ado_cp_{{ rand }}'), $parent = $('#ado_parent_{{ rand }}');
+                var $lp = $('#ado_lp_{{ rand }}'), $item = $('#ado_item_{{ rand }}');
+
+                function finder($project, scope, $el, placeholder, allowClear) {
+                    $el.select2({
+                        width: '100%', allowClear: allowClear, placeholder: placeholder,
+                        ajax: {
+                            url: function () { return base + '/Projects/' + $project.val() + '/Search'; },
+                            dataType: 'json', delay: 300,
+                            data: function (params) { return {term: params.term || '', scope: scope}; }
+                        }
+                    });
+                }
+                finder($cp, 'parents', $parent, {{ __('No parent', 'azuredevops')|json_encode|raw }}, true);
+                finder($lp, 'items', $item, {{ __('Search a work item…', 'azuredevops')|json_encode|raw }}, false);
+
+                function syncCreate() {
+                    var $o = $cp.find('option:selected');
+                    $('#ado_type_{{ rand }}').text($o.data('type') || '');
+                    $parent.val(null).trigger('change').prop('disabled', $o.data('parents') != 1);
+                }
+                $cp.on('change', syncCreate);
+                $lp.on('change', function () { $item.val(null).trigger('change'); });
+                syncCreate();
+            });
+        </script>
+    {% endif %}
+</div>

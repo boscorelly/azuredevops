@@ -1,0 +1,795 @@
+# Azure DevOps plugin for GLPI
+msgid ""
+msgstr ""
+"Project-Id-Version: azuredevops\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: src/AdoClient.php
+msgid "The organization, the project or the access token is not configured."
+msgstr "L'organisation, le projet ou le jeton d'accès n'est pas configuré."
+
+#: src/AdoClient.php
+msgid "Cannot reach Azure DevOps: %s"
+msgstr "Impossible de joindre Azure DevOps : %s"
+
+#: src/AdoClient.php
+msgid "Azure DevOps did not accept the access token (sign-in page received). Check that the token is valid, not expired, and has access to this organization."
+msgstr "Azure DevOps n'a pas accepté le jeton d'accès (page de connexion reçue). Vérifiez que le jeton est valide, non expiré, et qu'il a accès à cette organisation."
+
+#: src/AdoClient.php
+msgid "Unexpected (non-JSON) answer from Azure DevOps. Are the organization and the project correct?"
+msgstr "Réponse inattendue (non JSON) d'Azure DevOps. L'organisation et le projet sont-ils corrects ?"
+
+#: src/AdoClient.php
+msgid "Azure DevOps refused access (HTTP %d)%s"
+msgstr "Azure DevOps a refusé l'accès (HTTP %d)%s"
+
+#: src/AdoClient.php
+msgid "Not found on Azure DevOps (HTTP 404)%s"
+msgstr "Introuvable sur Azure DevOps (HTTP 404)%s"
+
+#: src/AdoClient.php
+msgid "Azure DevOps rate limit reached (HTTP 429)"
+msgstr "Limite de débit d'Azure DevOps atteinte (HTTP 429)"
+
+#: src/AdoClient.php
+msgid "Azure DevOps server error (HTTP %d)"
+msgstr "Erreur du serveur Azure DevOps (HTTP %d)"
+
+#: src/AdoClient.php
+msgid "Azure DevOps rejected the request (HTTP %d)%s"
+msgstr "Azure DevOps a rejeté la requête (HTTP %d)%s"
+
+#: src/AdoClient.php
+msgid "Azure DevOps did not return the project."
+msgstr "Azure DevOps n'a pas renvoyé le projet."
+
+#: src/AdoClient.php
+msgid "Azure DevOps did not return the created work item."
+msgstr "Azure DevOps n'a pas renvoyé l'élément de travail créé."
+
+#: src/AdoClient.php
+msgid "Cannot read file %s"
+msgstr "Impossible de lire le fichier %s"
+
+#: src/AdoClient.php
+msgid "Azure DevOps did not accept file %s"
+msgstr "Azure DevOps n'a pas accepté le fichier %s"
+
+#: src/AdoClient.php
+msgid "Azure DevOps did not return the work item."
+msgstr "Azure DevOps n'a pas renvoyé l'élément de travail."
+
+#: src/Controller/ConfigController.php
+msgid "The base URL must start with http:// or https://"
+msgstr "L'URL de base doit commencer par http:// ou https://"
+
+#: src/Controller/ConfigController.php
+msgid "Settings saved."
+msgstr "Paramètres enregistrés."
+
+#: src/Controller/ConfigController.php
+msgid "Rights updated."
+msgstr "Droits mis à jour."
+
+#: src/Controller/ConfigController.php
+msgid "Project saved."
+msgstr "Projet enregistré."
+
+#: src/Controller/ConfigController.php
+msgid "Project deleted."
+msgstr "Projet supprimé."
+
+#: src/Controller/ConfigController.php
+msgid "Connection successful: project \"%1$s\"%2$s. %3$d work item types found."
+msgstr "Connexion réussie : projet « %1$s »%2$s. %3$d types d'éléments de travail trouvés."
+
+#: src/Controller/ConfigController.php
+msgid ", authenticated as %s"
+msgstr ", authentifié en tant que %s"
+
+#: src/Controller/WorkItemController.php
+msgid "Azure DevOps work item created: %s"
+msgstr "Élément de travail Azure DevOps créé : %s"
+
+#: src/Controller/WorkItemController.php
+msgid "Azure DevOps work item linked: %s"
+msgstr "Élément de travail Azure DevOps lié : %s"
+
+#: src/Controller/WorkItemController.php
+msgid "Status: %s"
+msgstr "Statut : %s"
+
+#: src/Controller/WorkItemController.php
+msgid "The work item is no longer followed. It was not changed on Azure DevOps."
+msgstr "L'élément de travail n'est plus suivi. Il n'a pas été modifié sur Azure DevOps."
+
+#: src/ItemBuilder.php
+msgid "(description truncated)"
+msgstr "(description tronquée)"
+
+#: src/ItemBuilder.php
+msgid "The ticket description was too long and has been truncated."
+msgstr "La description du ticket était trop longue et a été tronquée."
+
+#: src/ItemBuilder.php
+msgid "(no description)"
+msgstr "(aucune description)"
+
+#: src/ItemBuilder.php
+msgid "Created from GLPI ticket %1$s by %2$s on %3$s"
+msgstr "Créé depuis le ticket GLPI %1$s par %2$s le %3$s"
+
+#: src/ItemBuilder.php
+msgid "Created from GLPI ticket %1$s on %2$s"
+msgstr "Créé depuis le ticket GLPI %1$s le %2$s"
+
+#: src/ItemBuilder.php
+msgid "Ticket"
+msgstr "Ticket"
+
+#: src/ItemBuilder.php
+msgid "Opened on"
+msgstr "Ouvert le"
+
+#: src/ItemBuilder.php
+msgid "Status"
+msgstr "Statut"
+
+#: src/ItemBuilder.php
+msgid "Priority"
+msgstr "Priorité"
+
+#: src/ItemBuilder.php
+msgid "Urgency"
+msgstr "Urgence"
+
+#: src/ItemBuilder.php
+msgid "Impact"
+msgstr "Impact"
+
+#: src/ItemBuilder.php
+msgid "Category"
+msgstr "Catégorie"
+
+#: src/ItemBuilder.php
+msgid "Entity"
+msgstr "Entité"
+
+#: src/ItemBuilder.php
+msgid "Requester"
+msgstr "Demandeur"
+
+#: src/ItemBuilder.php
+msgid "Assigned to"
+msgstr "Attribué à"
+
+#: src/ItemBuilder.php
+msgid "Attachment not copied (limit of %d files): %s"
+msgstr "Pièce jointe non copiée (limite de %d fichiers) : %s"
+
+#: src/ItemBuilder.php
+msgid "Attachment not found on disk: %s"
+msgstr "Pièce jointe introuvable sur le disque : %s"
+
+#: src/ItemBuilder.php
+msgid "Attachment not copied (larger than %d MB): %s"
+msgstr "Pièce jointe non copiée (plus de %d Mo) : %s"
+
+#: src/ItemBuilder.php
+msgid "Attachment not copied (%1$s): %2$s"
+msgstr "Pièce jointe non copiée (%1$s) : %2$s"
+
+#: src/Link.php
+msgid "Create or link a work item"
+msgstr "Créer ou lier un élément de travail"
+
+#: src/Link.php
+msgid "Refresh the status"
+msgstr "Actualiser le statut"
+
+#: src/Link.php
+msgid "Unlink"
+msgstr "Délier"
+
+#: src/Link.php
+msgid "Open"
+msgstr "Ouvert"
+
+#: src/Link.php
+msgid "Done"
+msgstr "Terminé"
+
+#: src/Link.php
+msgid "Not found on Azure DevOps"
+msgstr "Introuvable sur Azure DevOps"
+
+#: src/Link.php
+msgid "Moved to another project"
+msgstr "Déplacé vers un autre projet"
+
+#: src/Link.php
+msgid "Removed from the backlog"
+msgstr "Retiré du backlog"
+
+#: src/Link.php
+msgid "This project is not available."
+msgstr "Ce projet n'est pas disponible."
+
+#: src/Link.php
+msgid "You are not allowed to use this project."
+msgstr "Vous n'êtes pas autorisé à utiliser ce projet."
+
+#: src/Link.php
+msgid "No work item type is configured for this project."
+msgstr "Aucun type d'élément de travail n'est configuré pour ce projet."
+
+#: src/Link.php
+msgid "Another creation is in progress for this ticket, try again in a moment."
+msgstr "Une autre création est en cours pour ce ticket, réessayez dans un instant."
+
+#: src/Link.php
+msgid "This ticket already has an open work item created in this project."
+msgstr "Ce ticket a déjà un élément de travail ouvert créé dans ce projet."
+
+#: src/Link.php
+msgid "The parent work item #%d was not found."
+msgstr "L'élément parent n°%d est introuvable."
+
+#: src/Link.php
+msgid "The parent work item #%d belongs to another Azure DevOps project."
+msgstr "L'élément parent n°%d appartient à un autre projet Azure DevOps."
+
+#: src/Link.php
+msgid "A work item of type \"%s\" cannot be used as a parent in this project."
+msgstr "Un élément de type « %s » ne peut pas servir de parent dans ce projet."
+
+#: src/Link.php
+msgid "Select a work item."
+msgstr "Sélectionnez un élément de travail."
+
+#: src/Link.php
+msgid "This work item is already linked to the ticket."
+msgstr "Cet élément de travail est déjà lié au ticket."
+
+#: src/Link.php
+msgid "The work item #%d was not found (or the token of the project cannot read it)."
+msgstr "L'élément de travail n°%d est introuvable (ou le jeton du projet ne peut pas le lire)."
+
+#: src/Link.php
+msgid "The work item #%d belongs to another Azure DevOps project."
+msgstr "L'élément de travail n°%d appartient à un autre projet Azure DevOps."
+
+#: src/Link.php
+msgid "This work item is in a \"Removed\" state."
+msgstr "Cet élément de travail est dans un état « Removed »."
+
+#: src/Link.php
+msgid "This work item is already done: it is linked for reference only and will not be followed."
+msgstr "Cet élément de travail est déjà terminé : il est lié pour référence uniquement et ne sera pas suivi."
+
+#: src/Link.php
+msgid "The work item exists on Azure DevOps (%s) but could not be linked to the ticket."
+msgstr "L'élément de travail existe sur Azure DevOps (%s) mais n'a pas pu être lié au ticket."
+
+#: src/Link.php
+msgid "Azure DevOps work item"
+msgid_plural "Azure DevOps work items"
+msgstr[0] "Élément de travail Azure DevOps"
+msgstr[1] "Éléments de travail Azure DevOps"
+
+#: src/Project.php
+msgid "Project not found."
+msgstr "Projet introuvable."
+
+#: src/Project.php
+msgid "The project needs a name."
+msgstr "Le projet doit avoir un nom."
+
+#: src/Project.php
+msgid "Another project already has this name."
+msgstr "Un autre projet porte déjà ce nom."
+
+#: src/Project.php
+msgid "The organization and the Azure DevOps project name are required."
+msgstr "L'organisation et le nom du projet Azure DevOps sont obligatoires."
+
+#: src/Project.php
+msgid "The access token is required."
+msgstr "Le jeton d'accès est obligatoire."
+
+#: src/Project.php
+msgid "Tickets are linked to this project: it cannot be deleted. Deactivate it instead."
+msgstr "Des tickets sont liés à ce projet : il ne peut pas être supprimé. Désactivez-le plutôt."
+
+#: src/Project.php
+msgid "Azure DevOps project"
+msgid_plural "Azure DevOps projects"
+msgstr[0] "Projet Azure DevOps"
+msgstr[1] "Projets Azure DevOps"
+
+#: src/RequesterNotice.php
+msgid "Your request has been taken into account by the technical team and forwarded to the people in charge of the development. You will be informed of the outcome."
+msgstr "Votre demande a été prise en compte par l'équipe technique et transmise aux personnes en charge du développement. Vous serez informé de son aboutissement."
+
+#: src/RequesterNotice.php
+msgid "The technical work related to your request is complete."
+msgstr "Le travail technique lié à votre demande est terminé."
+
+#: src/Sync.php
+msgid "Check the Azure DevOps work items linked to tickets"
+msgstr "Vérifier les éléments de travail Azure DevOps liés aux tickets"
+
+#: src/Sync.php
+msgid "Maximum number of work items checked per run"
+msgstr "Nombre maximum d'éléments de travail vérifiés par exécution"
+
+#: src/Sync.php
+msgid "The Azure DevOps work item %s can no longer be found (deleted, or access removed). It is not followed anymore."
+msgstr "L'élément de travail Azure DevOps %s est introuvable (supprimé, ou accès retiré). Il n'est plus suivi."
+
+#: src/Sync.php
+msgid "The Azure DevOps work item %1$s is done (state: %2$s)"
+msgstr "L'élément de travail Azure DevOps %1$s est terminé (état : %2$s)"
+
+#: src/Sync.php
+msgid "by %s"
+msgstr "par %s"
+
+#: src/Sync.php
+msgid "on %s"
+msgstr "le %s"
+
+#: src/Sync.php
+msgid "The Azure DevOps work item %1$s was moved to the project \"%2$s\". It is not followed anymore: the ticket is left unchanged."
+msgstr "L'élément de travail Azure DevOps %1$s a été déplacé vers le projet « %2$s ». Il n'est plus suivi : le ticket est laissé inchangé."
+
+#: src/Sync.php
+msgid "The Azure DevOps work item %s was removed from the backlog. It is not followed anymore: the ticket is left unchanged."
+msgstr "L'élément de travail Azure DevOps %s a été retiré du backlog. Il n'est plus suivi : le ticket est laissé inchangé."
+
+#: templates/config.html.twig
+msgid "Azure DevOps"
+msgstr "Azure DevOps"
+
+#: templates/config.html.twig
+msgid "Azure DevOps projects"
+msgstr "Projets Azure DevOps"
+
+#: templates/config.html.twig
+msgid "Add a project"
+msgstr "Ajouter un projet"
+
+#: templates/config.html.twig
+msgid "No project is configured yet. Each project has its own access token and its own list of allowed users and groups."
+msgstr "Aucun projet n'est encore configuré. Chaque projet a son propre jeton d'accès et sa propre liste d'utilisateurs et de groupes autorisés."
+
+#: templates/config.html.twig
+msgid "Name"
+msgstr "Nom"
+
+#: templates/config.html.twig
+msgid "Organization / project"
+msgstr "Organisation / projet"
+
+#: templates/config.html.twig
+msgid "Work item type"
+msgstr "Type d'élément de travail"
+
+#: templates/config.html.twig
+msgid "Who can use it"
+msgstr "Qui peut l'utiliser"
+
+#: templates/config.html.twig
+msgid "Every technician with the \"create\" right"
+msgstr "Tout technicien ayant le droit « créer »"
+
+#: templates/config.html.twig
+msgid "Nobody yet"
+msgstr "Personne pour l'instant"
+
+#: templates/config.html.twig
+msgid "Inactive"
+msgstr "Inactif"
+
+#: templates/config.html.twig
+msgid "Error"
+msgstr "Erreur"
+
+#: templates/config.html.twig
+msgid "Active"
+msgstr "Actif"
+
+#: templates/config.html.twig
+msgid "Work item creation"
+msgstr "Création des éléments de travail"
+
+#: templates/config.html.twig
+msgid "Work item title"
+msgstr "Titre de l'élément de travail"
+
+#: templates/config.html.twig
+msgid "Placeholders: {id} (ticket number) and {title}."
+msgstr "Variables : {id} (numéro du ticket) et {title}."
+
+#: templates/config.html.twig
+msgid "Mention requesters and assignees in the work item"
+msgstr "Mentionner les demandeurs et les attribués dans l'élément de travail"
+
+#: templates/config.html.twig
+msgid "Add a followup to the ticket when a work item is created or linked"
+msgstr "Ajouter un suivi au ticket quand un élément de travail est créé ou lié"
+
+#: templates/config.html.twig
+msgid "Private followup"
+msgstr "Suivi privé"
+
+#: templates/config.html.twig
+msgid "When a work item is created, add a public followup (the technician can change this for each work item)"
+msgstr "Quand un élément de travail est créé, ajouter un suivi public (le technicien peut le modifier pour chaque élément)"
+
+#: templates/config.html.twig
+msgid "Message to the requester"
+msgstr "Message au demandeur"
+
+#: templates/config.html.twig
+msgid "Plain text. Empty = default message."
+msgstr "Texte brut. Vide = message par défaut."
+
+#: templates/config.html.twig
+msgid "Copy the ticket attachments and images to Azure DevOps"
+msgstr "Copier les pièces jointes et les images du ticket dans Azure DevOps"
+
+#: templates/config.html.twig
+msgid "Maximum attachment size (MB)"
+msgstr "Taille maximale d'une pièce jointe (Mo)"
+
+#: templates/config.html.twig
+msgid "When a work item is done on Azure DevOps"
+msgstr "Quand un élément de travail est terminé sur Azure DevOps"
+
+#: templates/config.html.twig
+msgid "A work item is \"done\" when its state belongs to a category chosen in its project (Completed by default). Epics and Features (the \"followup only\" types of the project) only add a private followup. For the other work items, the actions concerning the requester wait until every work item of the ticket is done."
+msgstr "Un élément de travail est « terminé » quand son état appartient à une catégorie choisie dans son projet (Completed par défaut). Les Epics et les Features (les types « suivi uniquement » du projet) ajoutent seulement un suivi privé. Pour les autres éléments, les actions concernant le demandeur attendent que tous les éléments du ticket soient terminés."
+
+#: templates/config.html.twig
+msgid "For technicians"
+msgstr "Pour les techniciens"
+
+#: templates/config.html.twig
+msgid "Add a followup with the Azure DevOps details (state, who, when)"
+msgstr "Ajouter un suivi avec les détails Azure DevOps (état, qui, quand)"
+
+#: templates/config.html.twig
+msgid "For the requester"
+msgstr "Pour le demandeur"
+
+#: templates/config.html.twig
+msgid "Requesters, who are often not technicians, never see the Azure DevOps tab. These neutral public messages tell them that their request was forwarded and completed, without any Azure DevOps detail (project, developer, link). GLPI notifications apply to public followups."
+msgstr "Les demandeurs, qui ne sont souvent pas des techniciens, ne voient jamais l'onglet Azure DevOps. Ces messages publics neutres leur indiquent que leur demande a été transmise puis réalisée, sans aucun détail Azure DevOps (projet, développeur, lien). Les notifications GLPI s'appliquent aux suivis publics."
+
+#: templates/config.html.twig
+msgid "Nothing"
+msgstr "Rien"
+
+#: templates/config.html.twig
+msgid "A public followup with the message below"
+msgstr "Un suivi public avec le message ci-dessous"
+
+#: templates/config.html.twig
+msgid "The ticket is solved, with the message below as the solution (notifications and automatic actions apply)"
+msgstr "Le ticket est résolu, avec le message ci-dessous comme solution (les notifications et les actions automatiques s'appliquent)"
+
+#: templates/config.html.twig
+msgid "Solution type (when the ticket is solved)"
+msgstr "Type de solution (quand le ticket est résolu)"
+
+#: templates/config.html.twig
+msgid "Advanced: custom solution text"
+msgstr "Avancé : texte de solution personnalisé"
+
+#: templates/config.html.twig
+msgid "Optional. Replaces the message above as the text of the solution (HTML allowed). Placeholders: {workitem}, {workitem_url}, {closed_by}, {closed_at}, {ticket_id}. They show Azure DevOps details to the requester."
+msgstr "Facultatif. Remplace le message ci-dessus comme texte de la solution (HTML autorisé). Variables : {workitem}, {workitem_url}, {closed_by}, {closed_at}, {ticket_id}. Elles montrent des détails Azure DevOps au demandeur."
+
+#: templates/config.html.twig
+msgid "Author"
+msgstr "Auteur"
+
+#: templates/config.html.twig
+msgid "Author of the automatic followups and solutions"
+msgstr "Auteur des suivis et solutions automatiques"
+
+#: templates/config.html.twig
+msgid "The user who created the work item"
+msgstr "L'utilisateur qui a créé l'élément de travail"
+
+#: templates/config.html.twig
+msgid "Advanced"
+msgstr "Avancé"
+
+#: templates/config.html.twig
+msgid "Azure DevOps base URL"
+msgstr "URL de base d'Azure DevOps"
+
+#: templates/config.html.twig
+msgid "Leave https://dev.azure.com for Azure DevOps Services."
+msgstr "Laissez https://dev.azure.com pour Azure DevOps Services."
+
+#: templates/config.html.twig
+msgid "Rights by profile"
+msgstr "Droits par profil"
+
+#: templates/config.html.twig
+msgid "Rights are cumulative: \"Read\" is required for the others. The same rights can be edited in the \"Azure DevOps\" tab of each profile (Administration > Profiles). Self-service profiles cannot use the plugin. On top of these rights, a technician only works with the projects he is allowed to use (see each project)."
+msgstr "Les droits sont cumulatifs : « Lecture » est requis pour les autres. Les mêmes droits se modifient dans l'onglet « Azure DevOps » de chaque profil (Administration > Profils). Les profils de l'interface simplifiée ne peuvent pas utiliser le plugin. En plus de ces droits, un technicien ne travaille qu'avec les projets qu'il est autorisé à utiliser (voir chaque projet)."
+
+#: templates/config.html.twig
+msgid "Profile"
+msgstr "Profil"
+
+#: templates/config.html.twig
+msgid "You need the update right on profiles to change these rights."
+msgstr "Il faut le droit de modification sur les profils pour changer ces droits."
+
+#: templates/config.html.twig
+msgid "Save the rights"
+msgstr "Enregistrer les droits"
+
+#: templates/project.html.twig
+msgid "New Azure DevOps project"
+msgstr "Nouveau projet Azure DevOps"
+
+#: templates/project.html.twig
+msgid "Back to the configuration"
+msgstr "Retour à la configuration"
+
+#: templates/project.html.twig
+msgid "Connection"
+msgstr "Connexion"
+
+#: templates/project.html.twig
+msgid "Shown to technicians when they choose where to create the work item."
+msgstr "Affiché aux techniciens quand ils choisissent où créer l'élément de travail."
+
+#: templates/project.html.twig
+msgid "Organization"
+msgstr "Organisation"
+
+#: templates/project.html.twig
+msgid "The name, or the URL (https://dev.azure.com/my-organization)."
+msgstr "Le nom, ou l'URL (https://dev.azure.com/mon-organisation)."
+
+#: templates/project.html.twig
+msgid "Project name in Azure DevOps"
+msgstr "Nom du projet dans Azure DevOps"
+
+#: templates/project.html.twig
+msgid "Access token (PAT)"
+msgstr "Jeton d'accès (PAT)"
+
+#: templates/project.html.twig
+msgid "(unchanged)"
+msgstr "(inchangé)"
+
+#: templates/project.html.twig
+msgid "A personal access token with the \"Work Items (Read & write)\" scope, whose owner can work on this project. It is stored encrypted, never shown again, and used only for this project."
+msgstr "Un jeton d'accès personnel avec la portée « Work Items (Read & write) », dont le propriétaire peut travailler sur ce projet. Il est stocké chiffré, jamais ré-affiché, et utilisé uniquement pour ce projet."
+
+#: templates/project.html.twig
+msgid "An inactive project cannot be chosen, and its work items are not checked."
+msgstr "Un projet inactif ne peut pas être choisi, et ses éléments de travail ne sont pas vérifiés."
+
+#: templates/project.html.twig
+msgid "Work items"
+msgstr "Éléments de travail"
+
+#: templates/project.html.twig
+msgid "Save with \"Save and test the connection\" to read the work item types of the project: they can then be chosen from a list."
+msgstr "Enregistrez avec « Enregistrer et tester la connexion » pour lire les types d'éléments de travail du projet : ils pourront alors être choisis dans une liste."
+
+#: templates/project.html.twig
+msgid "Type of work item to create"
+msgstr "Type d'élément de travail à créer"
+
+#: templates/project.html.twig
+msgid "For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). Its closure is what solves the ticket."
+msgstr "Par exemple User Story (Agile), Product Backlog Item (Scrum) ou Issue (Basic). C'est sa clôture qui résout le ticket."
+
+#: templates/project.html.twig
+msgid "Types that can be the parent of a new work item"
+msgstr "Types pouvant être le parent d'un nouvel élément de travail"
+
+#: templates/project.html.twig
+msgid "The technician can create the work item under one of these (Epic, Feature...), and link existing ones. Leave empty to disable parents."
+msgstr "Le technicien peut créer l'élément sous l'un d'eux (Epic, Feature…) et lier des éléments existants. Laisser vide pour désactiver les parents."
+
+#: templates/project.html.twig
+msgid "\"Followup only\" types"
+msgstr "Types « suivi uniquement »"
+
+#: templates/project.html.twig
+msgid "When such a work item is done, a private followup is added to the ticket, but the ticket is never solved: an Epic usually groups many tickets."
+msgstr "Quand un tel élément est terminé, un suivi privé est ajouté au ticket, mais le ticket n'est jamais résolu : un Epic regroupe en général de nombreux tickets."
+
+#: templates/project.html.twig
+msgid "A work item is \"done\" when its state is in the category"
+msgstr "Un élément est « terminé » quand son état est dans la catégorie"
+
+#: templates/project.html.twig
+msgid "Categories come from the process template (e.g. Done, Closed = Completed). \"Removed\" is always handled separately: the work item is no longer followed."
+msgstr "Les catégories viennent du modèle de processus (p. ex. Done, Closed = Completed). « Removed » est toujours traité à part : l'élément n'est plus suivi."
+
+#: templates/project.html.twig
+msgid "Area path"
+msgstr "Area path"
+
+#: templates/project.html.twig
+msgid "Optional. Empty = the default area of the project."
+msgstr "Facultatif. Vide = la zone par défaut du projet."
+
+#: templates/project.html.twig
+msgid "Default tags"
+msgstr "Tags par défaut"
+
+#: templates/project.html.twig
+msgid "Comma separated."
+msgstr "Séparés par des virgules."
+
+#: templates/project.html.twig
+msgid "Who can use this project"
+msgstr "Qui peut utiliser ce projet"
+
+#: templates/project.html.twig
+msgid "Restrict to the users and groups below"
+msgstr "Restreindre aux utilisateurs et groupes ci-dessous"
+
+#: templates/project.html.twig
+msgid "Unchecked: every technician who has the \"create\" right of the plugin can use this project. Checked: only the members of the groups and the users listed here (a technician in several groups gets all their projects). With nobody listed, nobody can use the project."
+msgstr "Décoché : tout technicien ayant le droit « créer » du plugin peut utiliser ce projet. Coché : seuls les membres des groupes et les utilisateurs listés ici (un technicien dans plusieurs groupes obtient tous leurs projets). Si personne n'est listé, personne ne peut utiliser le projet."
+
+#: templates/project.html.twig
+msgid "Groups"
+msgstr "Groupes"
+
+#: templates/project.html.twig
+msgid "Users"
+msgstr "Utilisateurs"
+
+#: templates/project.html.twig
+msgid "Save and test the connection"
+msgstr "Enregistrer et tester la connexion"
+
+#: templates/project.html.twig
+msgid "Delete this project and its configuration (token included)?"
+msgstr "Supprimer ce projet et sa configuration (jeton compris) ?"
+
+#: templates/project.html.twig
+msgid "Delete the project"
+msgstr "Supprimer le projet"
+
+#: templates/project.html.twig
+msgid "Search a group…"
+msgstr "Rechercher un groupe…"
+
+#: templates/project.html.twig
+msgid "Search a user…"
+msgstr "Rechercher un utilisateur…"
+
+#: templates/ticket_tab.html.twig
+msgid "Azure DevOps work items"
+msgstr "Éléments de travail Azure DevOps"
+
+#: templates/ticket_tab.html.twig
+msgid "No Azure DevOps work item is linked to this ticket."
+msgstr "Aucun élément de travail Azure DevOps n'est lié à ce ticket."
+
+#: templates/ticket_tab.html.twig
+msgid "Work item"
+msgstr "Élément de travail"
+
+#: templates/ticket_tab.html.twig
+msgid "Last check"
+msgstr "Dernière vérification"
+
+#: templates/ticket_tab.html.twig
+msgid "Refresh"
+msgstr "Actualiser"
+
+#: templates/ticket_tab.html.twig
+msgid "Stop following this work item? It will not be changed on Azure DevOps."
+msgstr "Arrêter de suivre cet élément de travail ? Il ne sera pas modifié sur Azure DevOps."
+
+#: templates/ticket_tab.html.twig
+msgid "The plugin is not configured yet."
+msgstr "Le plugin n'est pas encore configuré."
+
+#: templates/ticket_tab.html.twig
+msgid "Configure it"
+msgstr "Le configurer"
+
+#: templates/ticket_tab.html.twig
+msgid "No Azure DevOps project is available to you. Ask an administrator to add your group or your user to a project."
+msgstr "Aucun projet Azure DevOps n'est disponible pour vous. Demandez à un administrateur d'ajouter votre groupe ou votre utilisateur à un projet."
+
+#: templates/ticket_tab.html.twig
+msgid "Create a work item"
+msgstr "Créer un élément de travail"
+
+#: templates/ticket_tab.html.twig
+msgid "Project"
+msgstr "Projet"
+
+#: templates/ticket_tab.html.twig
+msgid "Under (Epic, Feature…)"
+msgstr "Sous (Epic, Feature…)"
+
+#: templates/ticket_tab.html.twig
+msgid "Followup on the ticket"
+msgstr "Suivi sur le ticket"
+
+#: templates/ticket_tab.html.twig
+msgid "Private"
+msgstr "Privé"
+
+#: templates/ticket_tab.html.twig
+msgid "Public"
+msgstr "Public"
+
+#: templates/ticket_tab.html.twig
+msgid "None"
+msgstr "Aucun"
+
+#: templates/ticket_tab.html.twig
+msgid "Additional tags"
+msgstr "Tags supplémentaires"
+
+#: templates/ticket_tab.html.twig
+msgid "A work item of type"
+msgstr "Un élément de travail de type"
+
+#: templates/ticket_tab.html.twig
+msgid "will be created."
+msgstr "sera créé."
+
+#: templates/ticket_tab.html.twig
+msgid "Inform the requester with a public followup"
+msgstr "Informer le demandeur par un suivi public"
+
+#: templates/ticket_tab.html.twig
+msgid "Create another work item even if one is already open in this project"
+msgstr "Créer un autre élément de travail même si un est déjà ouvert dans ce projet"
+
+#: templates/ticket_tab.html.twig
+msgid "Create the work item"
+msgstr "Créer l'élément de travail"
+
+#: templates/ticket_tab.html.twig
+msgid "Link an existing work item"
+msgstr "Lier un élément de travail existant"
+
+#: templates/ticket_tab.html.twig
+msgid "Work item (title or number)"
+msgstr "Élément de travail (titre ou numéro)"
+
+#: templates/ticket_tab.html.twig
+msgid "Link"
+msgstr "Lier"
+
+#: templates/ticket_tab.html.twig
+msgid "No parent"
+msgstr "Aucun parent"
+
+#: templates/ticket_tab.html.twig
+msgid "Search a work item…"
+msgstr "Rechercher un élément de travail…"
+
+#: templates/ticket_tab.html.twig
+msgid "%d other work item is linked to a project you cannot use."
+msgid_plural "%d other work items are linked to projects you cannot use."
+msgstr[0] "%d autre élément de travail est lié à un projet que vous ne pouvez pas utiliser."
+msgstr[1] "%d autres éléments de travail sont liés à des projets que vous ne pouvez pas utiliser."

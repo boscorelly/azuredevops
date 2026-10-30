@@ -1,0 +1,176 @@
+{% extends "layout/page_without_tabs.html.twig" %}
+
+{% set container_size = "narrow" %}
+
+{% block content_title %}{{ is_new ? __('New Azure DevOps project', 'azuredevops') : project.name }}{% endblock %}
+
+{% block content_body %}
+<p><a href="{{ back_url }}"><i class="ti ti-arrow-left"></i> {{ __('Back to the configuration', 'azuredevops') }}</a></p>
+
+{% if project.last_error %}
+    <div class="alert alert-danger">{{ project.last_error }}</div>
+{% endif %}
+
+<form method="post" action="{{ form_url }}">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="id" value="{{ project.id }}">
+
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Connection', 'azuredevops') }}</h3></div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label" for="ado_name">{{ __('Name', 'azuredevops') }}</label>
+                <input id="ado_name" type="text" name="name" class="form-control" value="{{ project.name }}" required>
+                <div class="form-text">{{ __('Shown to technicians when they choose where to create the work item.', 'azuredevops') }}</div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="ado_org">{{ __('Organization', 'azuredevops') }}</label>
+                    <input id="ado_org" type="text" name="organization" class="form-control" value="{{ project.organization }}" placeholder="my-organization" required>
+                    <div class="form-text">{{ __('The name, or the URL (https://dev.azure.com/my-organization).', 'azuredevops') }}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="ado_project">{{ __('Project name in Azure DevOps', 'azuredevops') }}</label>
+                    <input id="ado_project" type="text" name="ado_project" class="form-control" value="{{ project.ado_project }}" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="ado_token">{{ __('Access token (PAT)', 'azuredevops') }}</label>
+                <input id="ado_token" type="password" name="token" class="form-control" autocomplete="new-password"
+                       placeholder="{{ has_token ? __('(unchanged)', 'azuredevops') : '' }}" {{ has_token ? '' : 'required' }}>
+                <div class="form-text">{{ __('A personal access token with the "Work Items (Read & write)" scope, whose owner can work on this project. It is stored encrypted, never shown again, and used only for this project.', 'azuredevops') }}</div>
+            </div>
+            <label class="form-check"><input class="form-check-input" type="checkbox" name="is_active" value="1" {{ project.is_active ? 'checked' }}><span class="form-check-label">{{ __('Active', 'azuredevops') }}</span></label>
+            <div class="form-text ms-4">{{ __('An inactive project cannot be chosen, and its work items are not checked.', 'azuredevops') }}</div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Work items', 'azuredevops') }}</h3></div>
+        <div class="card-body">
+            {% if types is empty %}
+                <div class="alert alert-info">{{ __('Save with "Save and test the connection" to read the work item types of the project: they can then be chosen from a list.', 'azuredevops') }}</div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label" for="ado_type">{{ __('Type of work item to create', 'azuredevops') }}</label>
+                {% if types is not empty %}
+                    {% set opts = types %}
+                    {% if project.workitem_type and project.workitem_type not in opts %}{% set opts = opts|merge([project.workitem_type]) %}{% endif %}
+                    <select id="ado_type" name="workitem_type" class="form-select">
+                        <option value="">—</option>
+                        {% for t in opts %}<option value="{{ t }}" {{ t == project.workitem_type ? 'selected' }}>{{ t }}</option>{% endfor %}
+                    </select>
+                {% else %}
+                    <input id="ado_type" type="text" name="workitem_type" class="form-control" value="{{ project.workitem_type }}" placeholder="User Story">
+                {% endif %}
+                <div class="form-text">{{ __('For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). Its closure is what solves the ticket.', 'azuredevops') }}</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="ado_parents">{{ __('Types that can be the parent of a new work item', 'azuredevops') }}</label>
+                {% if types is not empty %}
+                    {% set opts = types %}
+                    {% for t in parent_types %}{% if t not in opts %}{% set opts = opts|merge([t]) %}{% endif %}{% endfor %}
+                    <select id="ado_parents" name="parent_types[]" class="form-select" multiple>
+                        {% for t in opts %}<option value="{{ t }}" {{ t in parent_types ? 'selected' }}>{{ t }}</option>{% endfor %}
+                    </select>
+                {% else %}
+                    <input id="ado_parents" type="text" name="parent_types" class="form-control" value="{{ project.parent_types }}" placeholder="Epic,Feature">
+                {% endif %}
+                <div class="form-text">{{ __('The technician can create the work item under one of these (Epic, Feature...), and link existing ones. Leave empty to disable parents.', 'azuredevops') }}</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="ado_fonly">{{ __('"Followup only" types', 'azuredevops') }}</label>
+                {% if types is not empty %}
+                    {% set opts = types %}
+                    {% for t in followup_only_types %}{% if t not in opts %}{% set opts = opts|merge([t]) %}{% endif %}{% endfor %}
+                    <select id="ado_fonly" name="followup_only_types[]" class="form-select" multiple>
+                        {% for t in opts %}<option value="{{ t }}" {{ t in followup_only_types ? 'selected' }}>{{ t }}</option>{% endfor %}
+                    </select>
+                {% else %}
+                    <input id="ado_fonly" type="text" name="followup_only_types" class="form-control" value="{{ project.followup_only_types }}" placeholder="Epic,Feature">
+                {% endif %}
+                <div class="form-text">{{ __('When such a work item is done, a private followup is added to the ticket, but the ticket is never solved: an Epic usually groups many tickets.', 'azuredevops') }}</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">{{ __('A work item is "done" when its state is in the category', 'azuredevops') }}</label>
+                <label class="form-check"><input class="form-check-input" type="checkbox" checked disabled><span class="form-check-label">Completed</span></label>
+                <input type="hidden" name="done_categories[]" value="Completed">
+                <label class="form-check"><input class="form-check-input" type="checkbox" name="done_categories[]" value="Resolved" {{ 'Resolved' in done_categories ? 'checked' }}><span class="form-check-label">Resolved</span></label>
+                <div class="form-text">{{ __('Categories come from the process template (e.g. Done, Closed = Completed). "Removed" is always handled separately: the work item is no longer followed.', 'azuredevops') }}</div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="ado_area">{{ __('Area path', 'azuredevops') }}</label>
+                    <input id="ado_area" type="text" name="area_path" class="form-control" value="{{ project.area_path }}" placeholder="My project\Support">
+                    <div class="form-text">{{ __('Optional. Empty = the default area of the project.', 'azuredevops') }}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="ado_tags">{{ __('Default tags', 'azuredevops') }}</label>
+                    <input id="ado_tags" type="text" name="default_tags" class="form-control" value="{{ project.default_tags }}">
+                    <div class="form-text">{{ __('Comma separated.', 'azuredevops') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Who can use this project', 'azuredevops') }}</h3></div>
+        <div class="card-body">
+            <label class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="is_restricted" value="1" {{ project.is_restricted ? 'checked' }}>
+                <span class="form-check-label">{{ __('Restrict to the users and groups below', 'azuredevops') }}</span>
+            </label>
+            <div class="form-text mb-3">{{ __('Unchecked: every technician who has the "create" right of the plugin can use this project. Checked: only the members of the groups and the users listed here (a technician in several groups gets all their projects). With nobody listed, nobody can use the project.', 'azuredevops') }}</div>
+
+            <div class="mb-3">
+                <label class="form-label" for="ado_groups">{{ __('Groups', 'azuredevops') }}</label>
+                <select id="ado_groups" name="groups[]" class="form-select" multiple style="width:100%">
+                    {% for id, name in access_groups %}<option value="{{ id }}" selected>{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="ado_users">{{ __('Users', 'azuredevops') }}</label>
+                <select id="ado_users" name="users[]" class="form-select" multiple style="width:100%">
+                    {% for id, name in access_users %}<option value="{{ id }}" selected>{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
+        <button type="submit" name="_test" value="1" class="btn btn-outline-primary">{{ __('Save and test the connection', 'azuredevops') }}</button>
+    </div>
+</form>
+
+{% if not is_new %}
+    <form method="post" action="{{ delete_url }}" class="mt-4"
+          onsubmit="return confirm('{{ __('Delete this project and its configuration (token included)?', 'azuredevops')|e('js') }}');">
+        <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+        {% if links > 0 %}
+            <div class="text-muted small mb-2">{{ __('Tickets are linked to this project: it cannot be deleted. Deactivate it instead.', 'azuredevops') }}</div>
+        {% endif %}
+        <button type="submit" class="btn btn-outline-danger" {{ links > 0 ? 'disabled' }}><i class="ti ti-trash"></i> {{ __('Delete the project', 'azuredevops') }}</button>
+    </form>
+{% endif %}
+
+<script>
+    $(function () {
+        var search = function (url, placeholder) {
+            return {
+                width: '100%', placeholder: placeholder, closeOnSelect: false,
+                ajax: {url: url, dataType: 'json', delay: 300,
+                    data: function (params) { return {term: params.term || '', page: params.page || 1}; }}
+            };
+        };
+        $('#ado_groups').select2(search({{ search_groups_url|json_encode|raw }}, {{ __('Search a group…', 'azuredevops')|json_encode|raw }}));
+        $('#ado_users').select2(search({{ search_users_url|json_encode|raw }}, {{ __('Search a user…', 'azuredevops')|json_encode|raw }}));
+        $('#ado_parents, #ado_fonly').select2({width: '100%'});
+    });
+</script>
+{% endblock %}

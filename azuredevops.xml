@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <n>Azure DevOps</n>
+    <key>azuredevops</key>
+    <state>stable</state>
+    <description>
+        <short>
+            <en>Create Azure DevOps work items from GLPI tickets, under an Epic or a Feature, and automatically act on the ticket when they are done.</en>
+            <fr>Créer des éléments de travail Azure DevOps depuis les tickets GLPI, sous un Epic ou une Feature, et agir automatiquement sur le ticket quand ils sont terminés.</fr>
+        </short>
+        <long>
+            <en>
+Create a work item (User Story, Product Backlog Item, Issue...) from a ticket in one click, optionally under an Epic or a Feature, or link an existing one. A GLPI automatic action checks every 5 minutes whether the work items are done and then adds a followup and/or solves the ticket, through GLPI's own objects so notifications, business rules and other automatic actions apply.
+
+* One access token per Azure DevOps project, stored encrypted
+* Access to each project restricted by group and by user
+* Parent chain (Epic > Feature > ...) shown in the ticket; one Epic can be linked to many tickets
+* Works with any process template, including custom states (state categories are read from Azure DevOps)
+* The ticket is solved only when all its work items are done
+* Safe handling of moved, removed, deleted or unreachable work items, expired tokens; failed actions are rolled back and retried
+* English and French
+            </en>
+            <fr>
+Créez un élément de travail (User Story, Product Backlog Item, Issue...) depuis un ticket en un clic, éventuellement sous un Epic ou une Feature, ou liez un élément existant. Une action automatique GLPI vérifie toutes les 5 minutes si les éléments sont terminés, puis ajoute un suivi et/ou résout le ticket via les objets GLPI : notifications, règles métier et autres actions automatiques s'appliquent.
+
+* Un jeton d'accès par projet Azure DevOps, stocké chiffré
+* Accès à chaque projet restreint par groupe et par utilisateur
+* Chaîne de parents (Epic > Feature > ...) affichée dans le ticket ; un Epic peut être lié à plusieurs tickets
+* Compatible avec tout modèle de processus, états personnalisés compris (les catégories d'état sont lues dans Azure DevOps)
+* Le ticket n'est résolu que quand tous ses éléments sont terminés
+* Gestion sûre des éléments déplacés, retirés, supprimés ou inaccessibles, des jetons expirés ; les actions en échec sont annulées puis rejouées
+* Anglais et français
+            </fr>
+        </long>
+    </description>
+    <authors>
+        <author>Azure DevOps plugin contributors</author>
+    </authors>
+    <versions>
+        <version>
+            <num>1.0.0</num>
+            <compatibility>~11.0.0</compatibility>
+        </version>
+    </versions>
+    <langs>
+        <lang>en_GB</lang>
+        <lang>fr_FR</lang>
+    </langs>
+    <license>AGPL v3+</license>
+    <tags>
+        <en>
+            <tag>azure devops</tag>
+            <tag>work items</tag>
+            <tag>tickets</tag>
+            <tag>integration</tag>
+        </en>
+        <fr>
+            <tag>azure devops</tag>
+            <tag>éléments de travail</tag>
+            <tag>tickets</tag>
+            <tag>intégration</tag>
+        </fr>
+    </tags>
+</root>
