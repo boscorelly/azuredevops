@@ -8,7 +8,7 @@ Give the GLPI version, the plugin version, the process template of the Azure Dev
 ## Pull requests
 - Target GLPI 11.0.x. Keep the code PSR-12 style, with PHP 8.2+ features allowed.
 - User-visible strings go through `__('…', 'azuredevops')`; add the French translation in `locales/fr_FR.po` and run `python3 tools/locales.py` (it compiles the `.mo` files with `msgfmt`).
-- Add or update tests in `tests/` (`run_all.sh` needs a GLPI 11 test instance, MariaDB, GLPI served on :8080 and the Azure DevOps API mock `tests/mock_ado.py`).
+- Add or update tests in `tests/` (`run_all.sh` needs a GLPI 11 test instance, MariaDB, GLPI served on :8080 and the Azure DevOps API mock `tests/mock_ado.py`). `tests/ui_fields_test.py` also runs the script of the creation form in jsdom: `cd tests && npm install jsdom jquery` (skipped when node or jsdom is missing).
 - Installation code in `hook.php` runs again on every update: keep it idempotent and never overwrite administrators' settings or rights.
 - Do not rename `Project` into a `CommonDBTM` subclass: its helper names clash with `CommonDBTM` methods.
 

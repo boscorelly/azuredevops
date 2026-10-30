@@ -26,11 +26,13 @@ final class ItemBuilder
     public function __construct(private readonly AdoClient $client) {}
 
     /**
-     * @param array<string, mixed> $project glpi_plugin_azuredevops_projects row
+     * @param array<string, mixed>  $project glpi_plugin_azuredevops_projects row
+     * @param array<string, string> $chosen_fields values chosen by the technician for the fields the process requires
+     *                                             (already checked by validateFields()); they win over the project's defaults
      *
      * @return array{type: string, fields: array<string, mixed>, relations: array<int, array<string, mixed>>, warnings: string[]}
      */
-    public function build(Ticket $ticket, array $project, int $parent_id, string $extra_tags, int $creator_id): array
+    public function build(Ticket $ticket, array $project, int $parent_id, string $extra_tags, int $creator_id, array $chosen_fields = []): array
     {
         $settings = Settings::all();
         $warnings = [];
@@ -64,13 +66,12 @@ final class ItemBuilder
         if (!empty($project['area_path'])) {
             $fields['System.AreaPath'] = (string) $project['area_path'];
         }
-        // Fields required by the process (Priority...): fixed values, or placeholders filled from the ticket.
+        // Fields required by the process (Priority...): the project's defaults, then what the technician chose.
         foreach (Project::defaultFields($project) as $reference => $value) {
-            $fields[$reference] = strtr($value, [
-                '{id}'       => (string) $ticket->getID(),
-                '{title}'    => (string) $ticket->fields['name'],
-                '{priority}' => (string) self::azurePriority((int) $ticket->fields['priority']),
-            ]);
+            $fields[$reference] = self::resolve($value, $ticket);
+        }
+        foreach ($chosen_fields as $reference => $value) {
+            $fields[$reference] = $value;
         }
 
         // 4. Relations: parent, link back to the ticket, attachments
@@ -98,6 +99,87 @@ final class ItemBuilder
     }
 
     // ------------------------------------------------------------------ pieces
+
+    /**
+     * Replace the placeholders of a default field value: {priority}, {id}, {title}.
+     */
+    public static function resolve(string $value, Ticket $ticket): string
+    {
+        return strtr($value, [
+            '{id}'       => (string) $ticket->getID(),
+            '{title}'    => (string) $ticket->fields['name'],
+            '{priority}' => (string) self::azurePriority((int) $ticket->fields['priority']),
+        ]);
+    }
+
+    /**
+     * The fields the process requires for the type to create, as offered in the creation form: each with the values it
+     * is limited to and the value to preselect: the project's default (placeholders resolved for this ticket), else the
+     * process's own default, else, for the Priority, the one matching the priority of the ticket.
+     *
+     * @param array<string, mixed> $project
+     *
+     * @return array<int, array{ref: string, name: string, allowed: string[], value: string}>
+     */
+    public static function formFields(array $project, Ticket $ticket): array
+    {
+        $configured = array_change_key_case(Project::defaultFields($project), CASE_LOWER);
+        $out        = [];
+        foreach (Project::requiredFields($project) as $field) {
+            $value = '';
+            if (isset($configured[strtolower($field['ref'])])) {
+                $value = self::resolve($configured[strtolower($field['ref'])], $ticket);
+            } elseif ($field['default'] !== null) {
+                $value = $field['default'];
+            } elseif (strcasecmp($field['ref'], 'Microsoft.VSTS.Common.Priority') === 0) {
+                $suggested = (string) self::azurePriority((int) $ticket->fields['priority']);
+                if ($field['allowed'] === [] || in_array($suggested, $field['allowed'], true)) {
+                    $value = $suggested;
+                }
+            }
+            $out[] = ['ref' => $field['ref'], 'name' => $field['name'], 'allowed' => $field['allowed'], 'value' => $value];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Check the values chosen in the creation form: only the fields the project lists as required can be set, with one of
+     * the values the process allows. Empty values are dropped (the project's default, or Azure DevOps's own, applies).
+     *
+     * @param array<string, mixed> $project
+     * @param array<string, mixed> $submitted reference name => value
+     *
+     * @return array<string, string>
+     *
+     * @throws \RuntimeException
+     */
+    public static function validateFields(array $project, array $submitted): array
+    {
+        $known = [];
+        foreach (Project::requiredFields($project) as $field) {
+            $known[strtolower($field['ref'])] = $field;
+        }
+
+        $chosen = [];
+        foreach ($submitted as $reference => $value) {
+            $reference = (string) $reference;
+            if (!is_scalar($value) || trim((string) $value) === '') {
+                continue;
+            }
+            $value = trim((string) $value);
+            $field = $known[strtolower($reference)] ?? null;
+            if ($field === null) {
+                throw new \RuntimeException(sprintf(__('This field cannot be set from the ticket: %s', 'azuredevops'), $reference));
+            }
+            if ($field['allowed'] !== [] && !in_array($value, $field['allowed'], true)) {
+                throw new \RuntimeException(sprintf(__('The value "%1$s" is not allowed for the field %2$s.', 'azuredevops'), $value, $field['name']));
+            }
+            $chosen[$field['ref']] = $value;
+        }
+
+        return $chosen;
+    }
 
     /**
      * Priority of the ticket (GLPI: 1 very low ... 5 very high, 6 major) as an Azure DevOps priority

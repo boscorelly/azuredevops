@@ -198,8 +198,10 @@ class Link extends CommonDBTM
         }
         $hidden = countElementsInTable(self::getTable(), ['tickets_id' => $ticket->getID()]) - count($visible);
 
-        $projects = [];
+        $projects          = [];
+        $fields_by_project = [];
         foreach (ProjectAccess::projectsForUser($users_id) as $project) {
+            $fields_by_project[(int) $project['id']] = ItemBuilder::formFields($project, $ticket);
             $projects[] = [
                 'id'            => (int) $project['id'],
                 'name'          => $project['name'],
@@ -215,6 +217,7 @@ class Link extends CommonDBTM
             'links'            => $links,
             'hidden_count'     => max(0, $hidden),
             'projects'         => $projects,
+            'fields_by_project' => $fields_by_project,
             'any_project'      => Project::all(true) !== [],
             'can_create'       => $projects !== [] && self::canCreate(),
             'can_update'       => self::canUpdate(),
@@ -267,6 +270,7 @@ class Link extends CommonDBTM
      * @param int         $parent_id  Epic / Feature / ... to create the work item under (0 = none)
      * @param string|null $followup   'private', 'public' or 'none'; null = use the plugin settings
      * @param bool|null   $notify_requester add the neutral public message for the requester; null = use the plugin settings
+     * @param array<string, mixed> $fields values chosen for the fields the process requires (reference name => value)
      *
      * @return array{link: Link, warnings: string[]}
      *
@@ -281,6 +285,7 @@ class Link extends CommonDBTM
         bool $allow_duplicate = false,
         ?string $followup = null,
         ?bool $notify_requester = null,
+        array $fields = [],
     ): array {
         /** @var \DBmysql $DB */
         global $DB;
@@ -289,6 +294,8 @@ class Link extends CommonDBTM
         if (trim((string) $project['workitem_type']) === '') {
             throw new RuntimeException(__('No work item type is configured for this project.', 'azuredevops'));
         }
+        // Values chosen in the form for the fields the process requires: checked before anything is sent.
+        $chosen_fields = ItemBuilder::validateFields($project, $fields);
 
         // Serialise concurrent creations for the same ticket (double click, two technicians).
         $lock = 'azuredevops_ticket_' . $ticket->getID();
@@ -326,7 +333,7 @@ class Link extends CommonDBTM
                 }
             }
 
-            $payload = (new ItemBuilder($client))->build($ticket, $project, $parent_id, $extra_tags, $users_id);
+            $payload = (new ItemBuilder($client))->build($ticket, $project, $parent_id, $extra_tags, $users_id, $chosen_fields);
             $item    = $client->createWorkItem($payload['type'], $payload['fields'], $payload['relations']);
 
             $chain = [];

@@ -421,7 +421,7 @@ final class Project
             try {
                 foreach ($client->getTypeFields($type) as $field) {
                     if ($field['required'] && !str_starts_with(strtolower($field['ref']), 'system.')) {
-                        $cache['required'][$type][] = ['ref' => $field['ref'], 'name' => $field['name'], 'default' => $field['default'], 'allowed' => array_slice($field['allowed'], 0, 50)];
+                        $cache['required'][$type][] = ['ref' => $field['ref'], 'name' => $field['name'], 'default' => $field['default'], 'allowed' => array_slice($field['allowed'], 0, 200)];
                     }
                 }
             } catch (AdoException $e) {

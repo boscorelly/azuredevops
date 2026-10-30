@@ -45,6 +45,8 @@ Custom.Team = Support
 Custom.Reference = GLPI-{id}: {title}
 ```
 
+**Dans l'onglet du ticket**, le formulaire de création affiche alors ces champs (par exemple *Priorité*) avec les valeurs autorisées dans une liste, **préselectionnées** d'après les champs par défaut, la valeur par défaut du processus ou, pour la Priorité, la priorité du ticket : le technicien peut les modifier pour chaque élément. Les champs par défaut servent aux valeurs qu'il ne faut pas demander.
+
 Variables : `{priority}` est la priorité du ticket sur l'échelle d'Azure DevOps (GLPI 5-6 → 1, 4 → 2, 3 → 3, 1-2 → 4 ; utilisez une valeur fixe si votre processus a d'autres valeurs), `{id}` le numéro du ticket, `{title}` son titre. Utilisez exactement l'une des **valeurs autorisées** listées. Les champs qui ont une valeur par défaut dans le processus la reçoivent d'Azure DevOps et n'ont besoin de rien.
 
 ### S'authentifier sans compte personnel (application Microsoft Entra)
@@ -140,4 +142,4 @@ Remplacez le dossier, videz le cache de GLPI (`php bin/console cache:clear`), pu
 
 ## Tests (`tests/`)
 
-`mock_ado.py` (mock de l'API Azure DevOps et de la connexion Entra, avec deux projets et deux formes de processus), `integration.php` (vrai GLPI, CLI, vrai cron : projets et chiffrement, matrice d'accès, création sous un parent, liaison, tous les cas de l'action automatique, la connexion Entra), `http_test.py` (vraie application web : connexion, onglet, configuration, restrictions d'accès, CSRF, langues), `upgrade_test.sh`, `run_all.sh`.
+`mock_ado.py` (mock de l'API Azure DevOps et de la connexion Entra, avec deux projets et deux formes de processus), `integration.php` (vrai GLPI, CLI, vrai cron : projets et chiffrement, matrice d'accès, création sous un parent, liaison, tous les cas de l'action automatique, la connexion Entra), `http_test.py` (vraie application web : connexion, onglet, configuration, restrictions d'accès, CSRF, langues), `ui_fields_test.py` (le script du formulaire de création, dans jsdom), `upgrade_test.sh`, `run_all.sh`.

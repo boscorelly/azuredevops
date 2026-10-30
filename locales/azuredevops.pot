@@ -137,6 +137,14 @@ msgid "The ticket description was too long and has been truncated."
 msgstr ""
 
 #: src/ItemBuilder.php
+msgid "This field cannot be set from the ticket: %s"
+msgstr ""
+
+#: src/ItemBuilder.php
+msgid "The value \"%1$s\" is not allowed for the field %2$s."
+msgstr ""
+
+#: src/ItemBuilder.php
 msgid "(no description)"
 msgstr ""
 
@@ -862,6 +870,10 @@ msgstr ""
 
 #: templates/ticket_tab.html.twig
 msgid "Additional tags"
+msgstr ""
+
+#: templates/ticket_tab.html.twig
+msgid "Required by the process"
 msgstr ""
 
 #: templates/ticket_tab.html.twig

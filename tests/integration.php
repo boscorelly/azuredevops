@@ -9,6 +9,7 @@ require __DIR__ . '/bootstrap.php';
 use GlpiPlugin\Azuredevops\AdoAuth;
 use GlpiPlugin\Azuredevops\AdoClient;
 use GlpiPlugin\Azuredevops\AdoException;
+use GlpiPlugin\Azuredevops\ItemBuilder;
 use GlpiPlugin\Azuredevops\Link;
 use GlpiPlugin\Azuredevops\Project;
 use GlpiPlugin\Azuredevops\ProjectAccess;
@@ -497,6 +498,26 @@ ok('they now show as covered', array_column(Project::requiredFields(Project::fin
 $r = Link::createFromTicket($trq, $tata, 2);
 $wf = item((int) $r['link']->fields['workitem_id'])['fields'];
 ok('created: priority taken from the ticket (GLPI 4 -> 2), fixed value, placeholders {id} and {title}', ($wf['Microsoft.VSTS.Common.Priority'] ?? '') === '2' && ($wf['Custom.Equipe'] ?? '') === 'Support' && ($wf['Custom.Reference'] ?? '') === 'GLPI-' . $trq->getID() . ': Champs requis', json_encode($wf));
+echo "== Fields required by the process, chosen in the creation form\n";
+Project::saveFromInput($tataInput(['default_fields' => 'Custom.Equipe = Support']), $tata);   // none configured for the Priority
+$tfm = newTicket('Formulaire');   // GLPI priority 4
+$byref = array_column(ItemBuilder::formFields(Project::find($tata), $tfm), null, 'ref');
+ok('the form offers the required fields with the values the process allows', array_keys($byref) === ['Microsoft.VSTS.Common.Priority', 'Custom.Equipe'] && $byref['Microsoft.VSTS.Common.Priority']['name'] === 'Priorité' && $byref['Microsoft.VSTS.Common.Priority']['allowed'] === ['1', '2', '3', '4'] && $byref['Custom.Equipe']['allowed'] === ['Support', 'Infra'], json_encode($byref));
+ok('preselected: the Priority suggested from the ticket (GLPI 4 -> 2) when the project gives none; the configured default otherwise', $byref['Microsoft.VSTS.Common.Priority']['value'] === '2' && $byref['Custom.Equipe']['value'] === 'Support');
+Project::saveFromInput($tataInput(['default_fields' => "Microsoft.VSTS.Common.Priority = {priority}\nCustom.Equipe = Support"]), $tata);
+$rc = Link::createFromTicket($tfm, $tata, 2, 0, '', true, 'none', false, ['Microsoft.VSTS.Common.Priority' => '1', 'Custom.Equipe' => 'Infra']);
+$wf = item((int) $rc['link']->fields['workitem_id'])['fields'];
+ok('the values chosen in the form win over the project defaults', ($wf['Microsoft.VSTS.Common.Priority'] ?? '') === '1' && ($wf['Custom.Equipe'] ?? '') === 'Infra', json_encode($wf));
+$rc2 = Link::createFromTicket($tfm, $tata, 2, 0, '', true, 'none', false, ['Microsoft.VSTS.Common.Priority' => '', 'Custom.Equipe' => ' ']);
+$wf2 = item((int) $rc2['link']->fields['workitem_id'])['fields'];
+ok('empty values fall back on the project defaults', ($wf2['Microsoft.VSTS.Common.Priority'] ?? '') === '2' && ($wf2['Custom.Equipe'] ?? '') === 'Support', json_encode($wf2));
+$n_creates = $creates();
+try { Link::createFromTicket($tfm, $tata, 2, 0, '', true, 'none', false, ['Custom.Hack' => 'x']); ok('forged field', false); }
+catch (RuntimeException $e) { ok('a field the project does not list cannot be set (forged request)', str_contains($e->getMessage(), 'Custom.Hack')); }
+try { Link::createFromTicket($tfm, $tata, 2, 0, '', true, 'none', false, ['Custom.Equipe' => 'Nope']); ok('forbidden value', false); }
+catch (RuntimeException $e) { ok('a value outside the allowed ones is refused', str_contains($e->getMessage(), 'not allowed') && str_contains($e->getMessage(), 'Équipe'), $e->getMessage()); }
+ok('nothing was sent to Azure DevOps for those refusals', $creates() === $n_creates);
+
 Project::saveFromInput($tataInput(['default_fields' => "Microsoft.VSTS.Common.Priority = 9\nCustom.Equipe = Support"]), $tata);
 try { Link::createFromTicket($trq, $tata, 2, 0, '', true); ok('value outside the allowed ones', false); }
 catch (AdoException $e) { ok('a value outside the allowed ones is refused by Azure DevOps, message shown', str_contains($e->getMessage(), 'LimitedToValues'), $e->getMessage()); }

@@ -2,7 +2,7 @@
 """HTTP-level test: real GLPI web app (:8080) + mock Azure DevOps (:8098).
 Run after integration.php:  python3 tests/http_test.py <ticket id with links>   (integration.php writes /tmp/ado_last_ticket_id)
 """
-import os, sys, re, json, subprocess, urllib.parse
+import html, os, sys, re, json, subprocess, urllib.parse
 from webclient import *
 
 ticket_id = int(sys.argv[1])
@@ -114,6 +114,23 @@ s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': ptok, 'id': str(new_
                 'default_fields': 'Microsoft.VSTS.Common.Priority = {priority}'})
 s, page, _ = a.req(f'{P}/Config/Project/{new_id}')
 check('default fields saved and shown, the required field is now covered', 'Microsoft.VSTS.Common.Priority = {priority}' in page and either(page, 'Has a value', 'Valeur renseignée') and not either(page, 'Needs a value', 'Valeur à renseigner'))
+# the creation form of the ticket offers the required fields
+s, pg, _ = tab(a, ticket_id, tok)
+m = re.search(r'id="ado_create_\d+"\s+data-fields="([^"]*)"', pg)
+ff = (json.loads(html.unescape(m.group(1))) if m else {}).get(str(new_id), [])
+check('ticket tab embeds the required fields of the project for the creation form', len(ff) == 1 and ff[0]['ref'] == 'Microsoft.VSTS.Common.Priority' and ff[0]['name'] == 'Priorité' and ff[0]['allowed'] == ['1', '2', '3', '4'] and ff[0]['value'] == '2', str(ff))
+check('the form has the place where they are shown', 'id="ado_fields_' in pg)
+t6 = new_ticket()
+s, pg, _ = tab(a, t6, tok)
+s, _, h = a.req(f'{P}/Ticket/{t6}/WorkItem', {'_glpi_csrf_token': form_token(pg, f'{P}/Ticket/{t6}/WorkItem'), 'project_id': str(new_id), 'followup': 'none', 'notify_requester': '0', 'fields[Microsoft.VSTS.Common.Priority]': '1'})
+wid = sql(f"select workitem_id from glpi_plugin_azuredevops_links where tickets_id={t6} and projects_id={new_id}")
+check('created from the form with the priority chosen there', wid != '' and mock('/_mock/dump')['items'][wid]['fields'].get('Microsoft.VSTS.Common.Priority') == '1', wid)
+t7 = new_ticket()
+s, pg, _ = tab(a, t7, tok)
+s, _, h = a.req(f'{P}/Ticket/{t7}/WorkItem', {'_glpi_csrf_token': form_token(pg, f'{P}/Ticket/{t7}/WorkItem'), 'project_id': str(new_id), 'followup': 'none', 'notify_requester': '0', 'fields[System.AssignedTo]': 'someone'})
+s, pg, _ = a.req(f'/front/ticket.form.php?id={t7}')
+check('a forged field is refused with a message, nothing created', sql(f"select count(*) from glpi_plugin_azuredevops_links where tickets_id={t7}") == '0' and either(pg, 'cannot be set from the ticket', 'ne peut pas être défini depuis le ticket'), text(pg)[:200])
+sql(f"delete from glpi_plugin_azuredevops_links where projects_id={new_id}")
 s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': form_token(page, f'{P}/Config/Project'), 'id': str(new_id), 'name': 'WebProj', 'organization': 'acme', 'ado_project': 'Tata', 'token': '', 'is_active': '1', 'is_restricted': '1',
                 'workitem_type': 'Issue', 'parent_types': 'Epic', 'followup_only_types': 'Epic', 'done_categories[]': ['Completed'], 'default_tags': 'glpi', 'groups[]': [str(g2)], 'default_fields': 'garbage'})
 s, page, _ = a.req(f'{P}/Config/Project/{new_id}')

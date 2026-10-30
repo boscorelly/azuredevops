@@ -2,6 +2,11 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.4
+- **The creation form offers the fields the process requires** (Priority...), next to the project and the parent: a list of the values the process allows (read from Azure DevOps at the connection test), or a text box when there is no list. The value is preselected from the project's *Default fields* if any, else from the process's own default, else, for the Priority, from the priority of the ticket. The technician can change it for each work item.
+- What is sent is checked on the server: only the fields the project lists as required can be set from the ticket, with one of the allowed values; an empty choice falls back on the project's default.
+- The project's *Default fields* remain the way to give a value to a field without asking the technician.
+
 ## 1.0.3
 - **Fields required by the process** (`TF401320: Rule Error for field Priority...`): a custom process can make fields such as Priority mandatory, with a list of allowed values, and the work item could not be created. New per-project setting **Default fields** (`Reference.Name = value`, one per line) with the placeholders `{priority}` (the ticket's priority on the Azure DevOps scale, 1 = most urgent to 4 = lowest), `{id}` and `{title}`.
 - *Save and test the connection* now **reads the required fields of the type to create** (with their allowed values) and lists them in the project, showing which ones still need a value, so that all of them can be filled in at once (Azure DevOps reports only the first error).

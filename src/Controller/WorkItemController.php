@@ -42,7 +42,9 @@ final class WorkItemController extends AbstractController
                 (string) $request->request->get('tags', ''),
                 $request->request->getBoolean('allow_duplicate'),
                 (string) $request->request->get('followup', ''),
-                $request->request->has('notify_requester') ? $request->request->getBoolean('notify_requester') : null
+                $request->request->has('notify_requester') ? $request->request->getBoolean('notify_requester') : null,
+                // Fields the process requires (Priority...), chosen in the form
+                array_filter((array) $request->request->all('fields'), 'is_scalar')
             );
             $this->flashCreated(__('Azure DevOps work item created: %s', 'azuredevops'), $res['link']);
             $this->flashWarnings($res['warnings']);
