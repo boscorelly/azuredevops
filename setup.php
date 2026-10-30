@@ -65,7 +65,7 @@ function plugin_version_azuredevops(): array
         'version'  => PLUGIN_AZUREDEVOPS_VERSION,
         'author'   => 'Azure DevOps plugin contributors',
         'license'  => 'AGPL-3.0-or-later',
-        'homepage' => '',
+        'homepage' => 'https://github.com/boscorelly/azuredevops',
         'requirements' => [
             'glpi' => [
                 'min' => PLUGIN_AZUREDEVOPS_MIN_GLPI,

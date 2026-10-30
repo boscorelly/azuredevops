@@ -21,7 +21,7 @@ The tests run against `tests/mock_ado.py`, written from the documented behaviour
 - parent creation (`System.LinkTypes.Hierarchy-Reverse`) and attachment upload.
 
 ## Releasing (maintainers)
-Bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version to `azuredevops.xml`, update `CHANGELOG.md`, then publish a release whose tag equals the version. The release workflow builds and attaches `glpi-azuredevops-<version>.tar.bz2` and `.zip`. Add `homepage`, `download`, `issues` and `readme` URLs to `azuredevops.xml` once the repository exists.
+Bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update `CHANGELOG.md`, then publish a release whose tag equals the version. The release workflow builds and attaches `glpi-azuredevops-<version>.tar.bz2` and `.zip`.
 
 ## License
 By contributing you agree that your contribution is licensed under AGPL-3.0-or-later.

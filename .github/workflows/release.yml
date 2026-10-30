@@ -1,0 +1,42 @@
+name: Release archives
+
+# When a release is published on GitHub, build glpi-azuredevops-<version>.tar.bz2 / .zip
+# (folder "azuredevops/" inside, as GLPI expects) and attach them to the release.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that the tag matches the plugin version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${TAG#v}"
+          FILE_VERSION=$(sed -n "s/.*define('PLUGIN_AZUREDEVOPS_VERSION', '\(.*\)');.*/\1/p" setup.php)
+          [ "$VERSION" = "$FILE_VERSION" ] || { echo "Tag $TAG != setup.php version $FILE_VERSION"; exit 1; }
+          grep -q "<num>$VERSION</num>" azuredevops.xml || { echo "Version $VERSION missing in azuredevops.xml"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: PHP syntax check
+        run: find . -name '*.php' -not -path './tests/*' -print0 | xargs -0 -n1 php -l > /dev/null
+
+      - name: Build archives
+        run: tools/build-release.sh "$VERSION"
+
+      - name: Attach archives to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" dist/* --clobber

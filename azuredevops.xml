@@ -33,6 +33,10 @@ Créez un élément de travail (User Story, Product Backlog Item, Issue...) depu
             </fr>
         </long>
     </description>
+    <homepage>https://github.com/boscorelly/azuredevops</homepage>
+    <download>https://github.com/boscorelly/azuredevops/releases</download>
+    <issues>https://github.com/boscorelly/azuredevops/issues</issues>
+    <readme>https://github.com/boscorelly/azuredevops/blob/main/README.md</readme>
     <authors>
         <author>Azure DevOps plugin contributors</author>
     </authors>
@@ -40,6 +44,7 @@ Créez un élément de travail (User Story, Product Backlog Item, Issue...) depu
         <version>
             <num>1.0.0</num>
             <compatibility>~11.0.0</compatibility>
+            <download_url>https://github.com/boscorelly/azuredevops/releases/download/1.0.0/glpi-azuredevops-1.0.0.tar.bz2</download_url>
         </version>
     </versions>
     <langs>
