@@ -2,6 +2,12 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.8
+- **A required field that is not really one can be left out of the ticket.** Azure DevOps reports as required some fields that its own form does not ask (hidden from the layout, or filled in by the process with a default value). In the project, each required field now has an **Ask in the ticket** box (ticked by default), and a column shows the **default value given by the process** to help decide. A field left unticked is no longer asked in the ticket; its default value from the project, if any, still applies. The choice is kept per type and survives the next saves and refreshes.
+- **The list of the types stays up to date by itself**: when a ticket is opened, the list is read again from Azure DevOps if it is more than an hour old (one request), so a type added or removed in Azure DevOps shows up without any test of the connection. The required fields already read are kept for a day, then read again when the type is next chosen. A failure of Azure DevOps changes nothing and is retried five minutes later.
+- **A *Refresh the types and fields from Azure DevOps* button** on the project page does it at once, without saving or testing anything else, and shows when the types were last read.
+- Update from 1.0.7: one column is added to the projects table; every required field stays asked until unticked.
+
 ## 1.0.7
 - **Tags: the tags that exist in the project in Azure DevOps are offered** in the creation form (a list that searches as you type), with the possibility to type a new one. They are read from Azure DevOps and kept five minutes. The *Default tags* of the project use the same list.
 - New project option **Only send tags that already exist in Azure DevOps**, for an account that cannot create tags (the Stakeholder access level): the other tags are left out and the technician is told, instead of making the creation fail. In the ticket only existing tags can then be chosen; if the list cannot be read, the work item is created anyway and the technician is warned.

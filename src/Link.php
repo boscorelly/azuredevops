@@ -201,7 +201,9 @@ class Link extends CommonDBTM
         $projects = [];
         $config   = [];   // what the creation form needs for each project: its types, the default one and the fields of each type
         foreach (ProjectAccess::projectsForUser($users_id) as $project) {
-            $types  = Project::offeredTypes($project);
+            // The list of the types stays up to date by itself (at most one request an hour per project).
+            $project = Project::refreshTypesIfStale($project);
+            $types   = Project::offeredTypes($project);
             $fields = [];
             foreach ($types as $type) {
                 // null = not read from Azure DevOps yet: the form asks for them when the type is chosen

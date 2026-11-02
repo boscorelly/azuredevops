@@ -239,6 +239,7 @@ final class Project
             // 1 = only the tags that already exist in Azure DevOps are sent (an account that cannot create tags)
             'restrict_tags'       => !empty($input['restrict_tags']) ? 1 : 0,
             'default_fields'      => $default_entries !== [] ? self::formatDefaultFields($default_entries) : null,
+            'hidden_fields'       => self::mergeHiddenFields($current, $input),
             'date_mod'            => $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s'),
         ];
 
@@ -534,15 +535,66 @@ final class Project
     }
 
     /**
+     * The required fields the administrator chose not to ask in the ticket ("Type: Reference.Name" lines).
+     *
+     * @return array<string, true> keys: lower case "type|reference"
+     */
+    public static function hiddenFields(array $project): array
+    {
+        $hidden = [];
+        foreach (preg_split('/\r\n|\r|\n/', (string) ($project['hidden_fields'] ?? '')) ?: [] as $line) {
+            if (preg_match('/^(.+?)\s*:\s+(\S+)$/', trim($line), $m)) {
+                $hidden[strtolower($m[1] . '|' . $m[2])] = true;
+            }
+        }
+
+        return $hidden;
+    }
+
+    /**
+     * Apply what the project form sent: it lists the fields it showed and ticks those to ask in the ticket. The others
+     * become hidden. What the form did not show (a type not read yet...) is kept as it was.
+     *
+     * @param array<string, mixed> $input
+     */
+    private static function mergeHiddenFields(?array $current, array $input): ?string
+    {
+        $existing = [];
+        foreach (preg_split('/\r\n|\r|\n/', (string) ($current['hidden_fields'] ?? '')) ?: [] as $line) {
+            if (preg_match('/^(.+?)\s*:\s+(\S+)$/', trim($line), $m)) {
+                $existing[strtolower($m[1] . '|' . $m[2])] = [$m[1], $m[2]];
+            }
+        }
+
+        $listed = is_array($input['listed_fields'] ?? null) ? $input['listed_fields'] : [];
+        $asked  = is_array($input['ask_fields'] ?? null) ? $input['ask_fields'] : [];
+        foreach ($listed as $type => $refs) {
+            foreach ((array) $refs as $ref) {
+                $key = strtolower($type . '|' . $ref);
+                if (in_array($ref, (array) ($asked[$type] ?? []), true)) {
+                    unset($existing[$key]);
+                } else {
+                    $existing[$key] = [(string) $type, (string) $ref];
+                }
+            }
+        }
+
+        $lines = array_map(static fn(array $e): string => $e[0] . ': ' . $e[1], array_values($existing));
+
+        return $lines !== [] ? implode("\n", $lines) : null;
+    }
+
+    /**
      * Fields the process requires for a work item type (the default one unless told), as read at the last test, with
      * whether the project gives them a value. The fields of the "System." family are filled in by Azure DevOps itself.
      *
-     * @return array<int, array{ref: string, name: string, default: ?string, allowed: string[], covered: bool}>
+     * @return array<int, array{ref: string, name: string, default: ?string, allowed: string[], covered: bool, hidden: bool}>
      */
     public static function requiredFields(array $project, ?string $type = null): array
     {
         $type   = $type ?? self::defaultType($project);
         $given  = array_change_key_case(self::defaultFields($project, $type), CASE_LOWER);
+        $hidden = self::hiddenFields($project);
         $fields = [];
         foreach (self::cache($project)['required'][$type] ?? [] as $field) {
             $fields[] = [
@@ -551,6 +603,8 @@ final class Project
                 'default'  => $field['default'] ?? null,
                 'allowed'  => $field['allowed'] ?? [],
                 'covered'  => isset($given[strtolower($field['ref'])]) || ($field['default'] ?? null) !== null,
+                // not asked in the ticket (the administrator found it is not a real requirement)
+                'hidden'   => isset($hidden[strtolower($type . '|' . $field['ref'])]),
             ];
         }
 
@@ -582,6 +636,70 @@ final class Project
     public static function requiredFieldsRead(array $project, string $type): bool
     {
         return array_key_exists($type, self::cache($project)['required'] ?? []);
+    }
+
+    /** The list of the types is read again, when a ticket is opened, if it is older than this (seconds). */
+    public const TYPES_MAX_AGE = 3600;
+
+    /** The required fields of the types are read again (when a type is next chosen) if they are older than this. */
+    private const REQUIRED_MAX_AGE = 86400;
+
+    /**
+     * Keep the list of the types up to date without anybody pressing a button: when it is older than $max_age, read it
+     * again (one request). A type added or removed in Azure DevOps shows up in the tickets within the hour. The required
+     * fields already read are kept (they are read again, per type, once a day); a failure leaves the cache as it is and
+     * tries again in five minutes.
+     *
+     * @param array<string, mixed> $project
+     *
+     * @return array<string, mixed> the project, with its refreshed cache
+     */
+    public static function refreshTypesIfStale(array $project, int $max_age = self::TYPES_MAX_AGE): array
+    {
+        /** @var \DBmysql $DB */
+        global $DB;
+
+        $cache   = self::cache($project);
+        $fetched = strtotime((string) ($cache['fetched_at'] ?? '')) ?: 0;
+        if (time() - $fetched < $max_age || empty($project['is_active'])) {
+            return $project;
+        }
+
+        $id = (int) $project['id'];
+        try {
+            $types = self::client($project)->getWorkItemTypes();
+        } catch (AdoException $e) {
+            Toolbox::logInFile('azuredevops', sprintf("Types not refreshed (project %d): %s\n", $id, $e->getMessage()));
+            $cache['fetched_at'] = date('Y-m-d H:i:s', time() - $max_age + 300);   // again in five minutes
+            $DB->update(self::getTable(), ['types_cache' => json_encode($cache, JSON_UNESCAPED_UNICODE)], ['id' => $id]);
+
+            return self::find($id) ?? $project;
+        }
+
+        $fresh = [];
+        foreach ($types as $type) {
+            $fresh[$type['name']] = ['states' => $type['states'], 'hierarchy' => $type['hierarchy'] ?? ''];
+        }
+        // What was read about a type that still exists is kept, unless it is a day old.
+        $required = [];
+        if (time() - (strtotime((string) ($cache['required_at'] ?? '')) ?: 0) < self::REQUIRED_MAX_AGE) {
+            foreach ($cache['required'] ?? [] as $name => $fields) {
+                foreach (array_keys($fresh) as $known) {
+                    if (strcasecmp((string) $known, (string) $name) === 0) {
+                        $required[$name] = $fields;
+                    }
+                }
+            }
+        }
+        $cache['types']      = $fresh;
+        $cache['required']   = $required;
+        $cache['fetched_at'] = date('Y-m-d H:i:s');
+        if ($required === []) {
+            unset($cache['required_at']);
+        }
+        $DB->update(self::getTable(), ['types_cache' => json_encode($cache, JSON_UNESCAPED_UNICODE), 'last_error' => null], ['id' => $id]);
+
+        return self::find($id) ?? $project;
     }
 
     /**
@@ -664,7 +782,8 @@ final class Project
             $cache['types'][$type['name']] = ['states' => $type['states'], 'hierarchy' => $type['hierarchy'] ?? ''];
         }
         // The fields the process requires for each type that can be created (not fatal: only used to help the administrator).
-        $cache['required'] = [];
+        $cache['required']    = [];
+        $cache['required_at'] = $now;
         foreach (array_slice(self::offeredTypes($project), 0, 12) as $wanted) {
             $type = null;
             foreach (array_keys($cache['types']) as $known) {

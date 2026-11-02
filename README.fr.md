@@ -49,6 +49,10 @@ Custom.Reference = GLPI-{id}: {title}
 
 **Dans l'onglet du ticket**, le formulaire de création affiche alors ces champs (par exemple *Priorité*) avec les valeurs autorisées dans une liste, **préselectionnées** d'après les champs par défaut, la valeur par défaut du processus ou, pour la Priorité, la priorité du ticket : le technicien peut les modifier pour chaque élément. Les champs par défaut servent aux valeurs qu'il ne faut pas demander.
 
+**Un champ qui n'est pas vraiment obligatoire.** Azure DevOps signale parfois comme obligatoire un champ que son propre formulaire ne demande pas (masqué dans la mise en page, ou rempli par le processus). Décochez **Demander dans le ticket** pour lui dans le projet : il n'est plus demandé dans le ticket, et sa valeur par défaut du projet, s'il y en a une, s'applique toujours. La colonne *Valeur par défaut du processus* aide à décider : un champ que le processus remplit lui-même vaut rarement la peine d'être demandé.
+
+**Garder les types à jour.** La liste des types est relue d'elle-même dans Azure DevOps à l'ouverture d'un ticket si elle date de plus d'une heure, et le bouton **Actualiser les types et les champs depuis Azure DevOps** de la page du projet le fait immédiatement.
+
 Variables : `{priority}` est la priorité du ticket sur l'échelle d'Azure DevOps (GLPI 5-6 → 1, 4 → 2, 3 → 3, 1-2 → 4 ; utilisez une valeur fixe si votre processus a d'autres valeurs), `{id}` le numéro du ticket, `{title}` son titre, `{entity}` son entité GLPI, `{category}` sa catégorie et `{requester}` son premier demandeur (par exemple `Custom.Client = {entity}` pour renseigner un champ client). Utilisez exactement l'une des **valeurs autorisées** listées. Les champs qui ont une valeur par défaut dans le processus la reçoivent d'Azure DevOps et n'ont besoin de rien.
 
 ### S'authentifier sans compte personnel (application Microsoft Entra)

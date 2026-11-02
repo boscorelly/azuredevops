@@ -189,6 +189,8 @@
                                     <th>{{ __('Reference name', 'azuredevops') }}</th>
                                     <th>{{ __('Name', 'azuredevops') }}</th>
                                     <th>{{ __('Allowed values', 'azuredevops') }}</th>
+                                    <th>{{ __('Default in the process', 'azuredevops') }}</th>
+                                    <th class="text-center">{{ __('Ask in the ticket', 'azuredevops') }}</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -198,7 +200,12 @@
                                     <td><code>{{ f.ref }}</code></td>
                                     <td>{{ f.name }}</td>
                                     <td class="small">{{ f.allowed is empty ? '—' : f.allowed|join(', ') }}</td>
-                                    <td>{% if f.covered %}<span class="badge bg-green-lt">{{ __('Has a value', 'azuredevops') }}</span>{% else %}<span class="badge bg-orange-lt">{{ __('Needs a value', 'azuredevops') }}</span>{% endif %}</td>
+                                    <td class="small">{{ f.default is not null ? f.default : '—' }}</td>
+                                    <td class="text-center">
+                                        <input type="hidden" name="listed_fields[{{ type_name }}][]" value="{{ f.ref }}">
+                                        <input class="form-check-input" type="checkbox" name="ask_fields[{{ type_name }}][]" value="{{ f.ref }}" {{ f.hidden ? '' : 'checked' }} aria-label="{{ __('Ask in the ticket', 'azuredevops') }}: {{ f.ref }}">
+                                    </td>
+                                    <td>{% if f.hidden %}<span class="badge bg-secondary-lt">{{ __('Not asked', 'azuredevops') }}</span>{% elseif f.covered %}<span class="badge bg-green-lt">{{ __('Has a value', 'azuredevops') }}</span>{% else %}<span class="badge bg-orange-lt">{{ __('Needs a value', 'azuredevops') }}</span>{% endif %}</td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -208,7 +215,7 @@
             {% endif %}{% endfor %}
             {% set any_required = false %}{% for t, fl in required_by_type %}{% if fl is not empty %}{% set any_required = true %}{% endif %}{% endfor %}
             {% if any_required %}
-                <div class="form-text mb-3">{{ __('Read from Azure DevOps at the last "Save and test the connection". The technician chooses these values in the ticket; give them a default here (one of the allowed values).', 'azuredevops') }}</div>
+                <div class="form-text mb-3">{{ __('Read from Azure DevOps. The technician chooses these values in the ticket; give them a default here (one of the allowed values). Untick "Ask in the ticket" for a field that Azure DevOps lists as required but that is not really one for you (hidden in the form, or filled in by the process, as its default value suggests): it is then no longer asked in the ticket.', 'azuredevops') }}</div>
             {% endif %}
         </div>
     </div>
@@ -242,6 +249,14 @@
         <button type="submit" name="_test" value="1" class="btn btn-outline-primary">{{ __('Save and test the connection', 'azuredevops') }}</button>
     </div>
 </form>
+
+{% if not is_new %}
+    <form method="post" action="{{ refresh_url }}" class="mt-4">
+        <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-secondary"><i class="ti ti-refresh"></i> {{ __('Refresh the types and fields from Azure DevOps', 'azuredevops') }}</button>
+        <span class="text-muted small ms-2">{% if types_read_at %}{{ __('Last read:', 'azuredevops') }} {{ types_read_at }}. {% endif %}{{ __('The list of the types is also refreshed by itself, at most once an hour, when a ticket is opened.', 'azuredevops') }}</span>
+    </form>
+{% endif %}
 
 {% if not is_new %}
     <form method="post" action="{{ delete_url }}" class="mt-4"

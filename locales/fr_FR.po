@@ -793,6 +793,18 @@ msgid "Allowed values"
 msgstr "Valeurs autorisées"
 
 #: templates/project.html.twig
+msgid "Default in the process"
+msgstr "Valeur par défaut du processus"
+
+#: templates/project.html.twig
+msgid "Ask in the ticket"
+msgstr "Demander dans le ticket"
+
+#: templates/project.html.twig
+msgid "Not asked"
+msgstr "Non demandé"
+
+#: templates/project.html.twig
 msgid "Has a value"
 msgstr "Valeur renseignée"
 
@@ -801,8 +813,8 @@ msgid "Needs a value"
 msgstr "Valeur à renseigner"
 
 #: templates/project.html.twig
-msgid "Read from Azure DevOps at the last \"Save and test the connection\". The technician chooses these values in the ticket; give them a default here (one of the allowed values)."
-msgstr "Lus dans Azure DevOps lors du dernier « Enregistrer et tester la connexion ». Le technicien choisit ces valeurs dans le ticket ; donnez-leur ici une valeur par défaut (l'une des valeurs autorisées)."
+msgid "Read from Azure DevOps. The technician chooses these values in the ticket; give them a default here (one of the allowed values). Untick \"Ask in the ticket\" for a field that Azure DevOps lists as required but that is not really one for you (hidden in the form, or filled in by the process, as its default value suggests): it is then no longer asked in the ticket."
+msgstr "Lus dans Azure DevOps. Le technicien choisit ces valeurs dans le ticket ; donnez-leur ici une valeur par défaut (l'une des valeurs autorisées). Décochez « Demander dans le ticket » pour un champ qu'Azure DevOps indique comme obligatoire mais qui ne l'est pas vraiment pour vous (masqué dans le formulaire, ou rempli par le processus, comme le suggère sa valeur par défaut) : il n'est alors plus demandé dans le ticket."
 
 #: templates/project.html.twig
 msgid "Who can use this project"
@@ -827,6 +839,18 @@ msgstr "Utilisateurs"
 #: templates/project.html.twig
 msgid "Save and test the connection"
 msgstr "Enregistrer et tester la connexion"
+
+#: templates/project.html.twig
+msgid "Refresh the types and fields from Azure DevOps"
+msgstr "Actualiser les types et les champs depuis Azure DevOps"
+
+#: templates/project.html.twig
+msgid "Last read:"
+msgstr "Dernière lecture :"
+
+#: templates/project.html.twig
+msgid "The list of the types is also refreshed by itself, at most once an hour, when a ticket is opened."
+msgstr "La liste des types s'actualise aussi d'elle-même, au plus une fois par heure, à l'ouverture d'un ticket."
 
 #: templates/project.html.twig
 msgid "Delete this project and its configuration (token included)?"

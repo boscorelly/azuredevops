@@ -793,6 +793,18 @@ msgid "Allowed values"
 msgstr ""
 
 #: templates/project.html.twig
+msgid "Default in the process"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Ask in the ticket"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Not asked"
+msgstr ""
+
+#: templates/project.html.twig
 msgid "Has a value"
 msgstr ""
 
@@ -801,7 +813,7 @@ msgid "Needs a value"
 msgstr ""
 
 #: templates/project.html.twig
-msgid "Read from Azure DevOps at the last \"Save and test the connection\". The technician chooses these values in the ticket; give them a default here (one of the allowed values)."
+msgid "Read from Azure DevOps. The technician chooses these values in the ticket; give them a default here (one of the allowed values). Untick \"Ask in the ticket\" for a field that Azure DevOps lists as required but that is not really one for you (hidden in the form, or filled in by the process, as its default value suggests): it is then no longer asked in the ticket."
 msgstr ""
 
 #: templates/project.html.twig
@@ -826,6 +838,18 @@ msgstr ""
 
 #: templates/project.html.twig
 msgid "Save and test the connection"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Refresh the types and fields from Azure DevOps"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "Last read:"
+msgstr ""
+
+#: templates/project.html.twig
+msgid "The list of the types is also refreshed by itself, at most once an hour, when a ticket is opened."
 msgstr ""
 
 #: templates/project.html.twig

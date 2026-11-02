@@ -179,6 +179,21 @@ final class ConfigController extends AbstractController
         return new RedirectResponse($this->url('/Config/Project/' . $id));
     }
 
+    /**
+     * Read the types of the project, and the fields they require, again from Azure DevOps, without saving the form.
+     */
+    #[Route('/Config/Project/{id}/Refresh', name: 'azuredevops_project_refresh', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function refreshProject(int $id): Response
+    {
+        $this->checkRight();
+        if (Project::find($id) === null) {
+            throw new NotFoundHttpException();
+        }
+        $this->testProject($id);
+
+        return new RedirectResponse($this->url('/Config/Project/' . $id));
+    }
+
     #[Route('/Config/Project/{id}/Delete', name: 'azuredevops_project_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function deleteProject(int $id): Response
     {
@@ -250,6 +265,8 @@ final class ConfigController extends AbstractController
             'links'     => $id > 0 ? countElementsInTable(Link::getTable(), ['projects_id' => $id]) : 0,
             'form_url'  => $this->url('/Config/Project'),
             'delete_url' => $id > 0 ? $this->url('/Config/Project/' . $id . '/Delete') : '',
+            'refresh_url' => $id > 0 ? $this->url('/Config/Project/' . $id . '/Refresh') : '',
+            'types_read_at' => $project !== null && !empty(Project::cache($project)['fetched_at']) ? \Html::convDateTime((string) Project::cache($project)['fetched_at']) : '',
             'back_url'  => $this->url('/Config'),
             'search_users_url'  => $this->url('/Config/Search/Users'),
             'search_groups_url' => $this->url('/Config/Search/Groups'),

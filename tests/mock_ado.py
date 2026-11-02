@@ -21,6 +21,7 @@ Control endpoints (not part of Azure DevOps), JSON bodies:
                                                                       fields the process requires when creating that type ({} = none)
   POST /_mock/tags    {"project":"Toto","tags":["Backend","Urgent"],"preview_only":false,"fail":0}
                                                                       tags of a project; preview_only = the stable API version answers 404; fail = HTTP status of the tags list
+  POST /_mock/type    {"project":"Toto","type":"Incident","remove":false}   add (or remove) a work item type in the project's process
   POST /_mock/revoke_bearers                                          every access token issued so far stops working
   GET  /_mock/dump    -> everything received so far
   POST /_mock/reset
@@ -65,9 +66,11 @@ state = {}
 
 
 def reset():
+    for p, t in state.get('added_types', []):   # types added by /_mock/type are forgotten
+        PROJECTS[p]['types'].pop(t, None)
     state.clear()
     state.update({'items': {}, 'attachments': {}, 'requests': [], 'next_id': 100, 'fail': 0, 'retry_after': 0, 'token_mode': '401',
-                  'bearers': {}, 'token_requests': [], 'rules': {}, 'tags': {'Toto': ['Backend', 'Urgent', 'glpi'], 'Tata': ['Infra', 'glpi']}, 'tags_flags': {}, 'entra': {'expires_in': 3600, 'secret_expired': False, 'org_access': True}})
+                  'bearers': {}, 'token_requests': [], 'rules': {}, 'tags': {'Toto': ['Backend', 'Urgent', 'glpi'], 'Tata': ['Infra', 'glpi']}, 'tags_flags': {}, 'added_types': [], 'entra': {'expires_in': 3600, 'secret_expired': False, 'org_access': True}})
 
 
 reset()
@@ -378,6 +381,14 @@ class H(BaseHTTPRequestHandler):
                 state['rules'][key] = data['fields']
             else:
                 state['rules'].pop(key, None)
+            return self.send(200, {})
+        if path == '/_mock/type':
+            types = PROJECTS[data['project']]['types']
+            if data.get('remove'):
+                types.pop(data['type'], None)
+            else:
+                types[data['type']] = {'states': [('New', 'Proposed'), ('Active', 'InProgress'), ('Closed', 'Completed')]}
+                state['added_types'].append((data['project'], data['type']))
             return self.send(200, {})
         if path == '/_mock/tags':
             if 'tags' in data:

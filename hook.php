@@ -141,6 +141,8 @@ function plugin_azuredevops_install(): bool
         'restrict_types'       => "TINYINT NOT NULL DEFAULT '0'",
         // 1.0.7: 1 = only tags that already exist in Azure DevOps are sent (accounts that cannot create tags)
         'restrict_tags'        => "TINYINT NOT NULL DEFAULT '0'",
+        // 1.0.8: required fields (as detected in Azure DevOps) that are not asked in the ticket: "Type: Reference.Name" lines
+        'hidden_fields'        => 'TEXT DEFAULT NULL',
     ] as $field => $definition) {
         if (!$DB->fieldExists($projects_table, $field)) {
             $DB->doQuery("ALTER TABLE `$projects_table` ADD COLUMN `$field` $definition");

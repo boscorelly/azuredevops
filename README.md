@@ -49,6 +49,10 @@ Custom.Reference = GLPI-{id}: {title}
 
 **In the ticket tab**, the creation form then shows these fields (for example *Priority*) with the allowed values in a list, **preselected** from the default fields, from the process's own default or, for the Priority, from the ticket's priority: the technician can change them for each work item. Default fields are for values that should not be asked.
 
+**A field that is not really required.** Azure DevOps sometimes reports as required a field that its own form does not ask (hidden from the layout, or filled in by the process). Untick **Ask in the ticket** for it in the project: it is no longer asked in the ticket, and its default value from the project, if any, still applies. The *Default in the process* column helps to decide: a field that the process fills in by itself is rarely worth asking.
+
+**Keeping the types up to date.** The list of the types is read again from Azure DevOps by itself when a ticket is opened if it is more than an hour old, and the **Refresh the types and fields from Azure DevOps** button of the project page does it at once.
+
 Placeholders: `{priority}` is the ticket's priority on the Azure DevOps scale (GLPI 5-6 → 1, 4 → 2, 3 → 3, 1-2 → 4; use a fixed value if your process has other values), `{id}` the ticket number, `{title}` its title, `{entity}` its GLPI entity, `{category}` its category and `{requester}` its first requester (for instance `Custom.Client = {entity}` to fill a customer field). Use one of the **allowed values** exactly as listed. Fields with a default in the process get it from Azure DevOps and need nothing.
 
 ### Authenticate without a personal account (Microsoft Entra application)

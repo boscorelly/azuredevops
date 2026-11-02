@@ -152,6 +152,9 @@ final class ItemBuilder
         $configured = array_change_key_case(Project::defaultFields($project, $type), CASE_LOWER);
         $out        = [];
         foreach (Project::requiredFields($project, $type) as $field) {
+            if ($field['hidden']) {
+                continue;   // the administrator chose not to ask it in the ticket (its default value, if any, still applies)
+            }
             $value = '';
             if (isset($configured[strtolower($field['ref'])])) {
                 $value = self::resolve($configured[strtolower($field['ref'])], $ticket);
@@ -184,7 +187,9 @@ final class ItemBuilder
     {
         $known = [];
         foreach (Project::requiredFields($project, $type) as $field) {
-            $known[strtolower($field['ref'])] = $field;
+            if (!$field['hidden']) {
+                $known[strtolower($field['ref'])] = $field;
+            }
         }
 
         $chosen = [];

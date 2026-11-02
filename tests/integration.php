@@ -632,6 +632,64 @@ Project::saveFromInput($totoInput(['default_fields' => '']), $toto);
 $DB->update('glpi_tickets', ['itilcategories_id' => 0], ['id' => $tpl->getID()]);
 $DB->delete('glpi_itilcategories', ['id' => $catid]);
 
+echo "== Required fields that are not asked in the ticket\n";
+mock('/_mock/rules', ['project' => 'Tata', 'type' => 'Issue', 'fields' => ['Microsoft.VSTS.Common.Priority' => ['name' => 'Priorité', 'allowed' => ['1', '2', '3', '4']], 'Custom.Client' => ['name' => 'Client', 'allowed' => ['Acme', 'Globex']]]]);
+$defaults = "Microsoft.VSTS.Common.Priority = {priority}\nCustom.Client = Acme";
+Project::saveFromInput($tataInput(['default_fields' => $defaults]), $tata);
+Project::testAndCache($tata);
+$tcl = newTicket('Client cache');
+ok('every required field is asked by default', array_column(ItemBuilder::formFields(Project::find($tata), $tcl), 'ref') === ['Microsoft.VSTS.Common.Priority', 'Custom.Client'] && array_column(Project::requiredFields(Project::find($tata)), 'hidden') === [false, false]);
+Project::saveFromInput($tataInput(['default_fields' => $defaults, 'listed_fields' => ['Issue' => ['Microsoft.VSTS.Common.Priority', 'Custom.Client']], 'ask_fields' => ['Issue' => ['Microsoft.VSTS.Common.Priority']]]), $tata);
+ok('the field not ticked is stored as hidden, with its type', Project::find($tata)['hidden_fields'] === 'Issue: Custom.Client', (string) Project::find($tata)['hidden_fields']);
+ok('it is flagged hidden, and the form no longer asks it', array_column(Project::requiredFields(Project::find($tata)), 'hidden') === [false, true] && array_column(ItemBuilder::formFields(Project::find($tata), $tcl), 'ref') === ['Microsoft.VSTS.Common.Priority']);
+try { ItemBuilder::validateFields(Project::find($tata), ['Custom.Client' => 'Globex']); ok('hidden field set', false); } catch (RuntimeException $e) { ok('a value forged for a field that is not asked is refused', str_contains($e->getMessage(), 'cannot be set')); }
+$rh = Link::createFromTicket($tcl, $tata, 2, 0, '', false, 'none', false);
+ok('its default value still applies at creation (the field is just not asked)', item((int) $rh['link']->fields['workitem_id'])['fields']['Custom.Client'] === 'Acme');
+Project::saveFromInput($tataInput(['default_fields' => $defaults]), $tata);
+ok('a save that does not send the field list keeps what was hidden', Project::find($tata)['hidden_fields'] === 'Issue: Custom.Client');
+$DB->update(Project::getTable(), ['hidden_fields' => "Issue: Custom.Client\nTask: Custom.Z"], ['id' => $tata]);
+Project::saveFromInput($tataInput(['default_fields' => $defaults, 'listed_fields' => ['Issue' => ['Microsoft.VSTS.Common.Priority', 'Custom.Client']], 'ask_fields' => ['Issue' => ['Microsoft.VSTS.Common.Priority', 'Custom.Client']]]), $tata);
+ok('asking it again removes it from the hidden ones, what concerns types not shown is kept', Project::find($tata)['hidden_fields'] === 'Task: Custom.Z' && array_column(ItemBuilder::formFields(Project::find($tata), $tcl), 'ref') === ['Microsoft.VSTS.Common.Priority', 'Custom.Client'], (string) Project::find($tata)['hidden_fields']);
+$DB->update(Project::getTable(), ['hidden_fields' => null], ['id' => $tata]);
+Project::saveFromInput($tataInput(['default_fields' => '']), $tata);
+mock('/_mock/rules', ['project' => 'Tata', 'type' => 'Issue', 'fields' => []]);
+Project::testAndCache($tata);
+
+echo "== The list of the types stays up to date by itself\n";
+$typeReads = fn() => count(array_filter(requests(), fn($r) => $r['method'] === 'GET' && $r['path'] === '/acme/Toto/_apis/wit/workitemtypes'));
+$ageCache = function (int $id, array $changes) use ($DB) {
+    $row = Project::find($id); $cache = Project::cache($row);
+    foreach ($changes as $k => $v) { $v === null ? ($cache = array_diff_key($cache, [$k => 1])) : ($cache[$k] = $v); }
+    $DB->update(Project::getTable(), ['types_cache' => json_encode($cache)], ['id' => $id]);
+};
+Project::testAndCache($toto);
+$n = $typeReads();
+Project::refreshTypesIfStale(Project::find($toto));
+ok('a recent cache is not read again (no request when a ticket is opened)', $typeReads() === $n);
+mock('/_mock/type', ['project' => 'Toto', 'type' => 'Incident']);
+$ageCache($toto, ['fetched_at' => '2000-01-01 00:00:00']);
+$p2 = Project::refreshTypesIfStale(Project::find($toto));
+ok('an old cache is read again: the type added in Azure DevOps is offered, without any button', $typeReads() === $n + 1 && in_array('Incident', Project::offeredTypes($p2), true) && strtotime((string) Project::cache($p2)['fetched_at']) > time() - 60, json_encode(Project::offeredTypes($p2)));
+ok('what was read about the other types is kept', Project::requiredFieldsRead($p2, 'Bug') && Project::requiredFieldsRead($p2, 'Epic'));
+Project::refreshTypesIfStale($p2);
+ok('and it is not read again right after', $typeReads() === $n + 1);
+Project::ensureRequiredFields($toto, 'Incident');
+ok('the fields of the new type are read when it is chosen', Project::requiredFieldsRead(Project::find($toto), 'Incident'));
+mock('/_mock/type', ['project' => 'Toto', 'type' => 'Incident', 'remove' => true]);
+$ageCache($toto, ['fetched_at' => '2000-01-01 00:00:00']);
+$p3 = Project::refreshTypesIfStale(Project::find($toto));
+ok('a type removed in Azure DevOps disappears, with what was read about it', !in_array('Incident', Project::offeredTypes($p3), true) && !array_key_exists('Incident', Project::cache($p3)['required']));
+$ageCache($toto, ['fetched_at' => '2000-01-01 00:00:00', 'required_at' => '2000-01-01 00:00:00']);
+$p4 = Project::refreshTypesIfStale(Project::find($toto));
+ok('the required fields read more than a day ago are dropped (read again when the type is chosen)', !Project::requiredFieldsRead($p4, 'Bug') && Project::offeredTypes($p4) !== []);
+Project::ensureRequiredFields($toto, 'Bug');
+$ageCache($toto, ['fetched_at' => '2000-01-01 00:00:00']);
+mock('/_mock/fail', ['status' => 500]);
+$p5 = Project::refreshTypesIfStale(Project::find($toto));
+mock('/_mock/fail', ['status' => 0]);
+ok('Azure DevOps failing: no error for the technician, the cache is kept, next attempt in about five minutes', Project::offeredTypes($p5) === Project::offeredTypes($p4) && Project::requiredFieldsRead($p5, 'Bug') && abs(strtotime((string) Project::cache($p5)['fetched_at']) - (time() - Project::TYPES_MAX_AGE + 300)) < 60);
+Project::testAndCache($toto);
+
 echo "== Microsoft Entra application instead of a personal token\n";
 $signins = fn() => count(mock('/_mock/dump')['token_requests']);
 $authCount = fn(string $type) => count(array_filter(requests(), fn($r) => $r['auth_type'] === $type));
