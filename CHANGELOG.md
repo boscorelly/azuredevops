@@ -8,12 +8,6 @@ Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the ver
 - Default fields can take values from GLPI: `{entity}` (entity of the ticket), `{category}` (its category) and `{requester}` (its first requester), next to `{priority}`, `{id}` and `{title}` — for example `Custom.Client = {entity}` to fill a customer field.
 - Update from 1.0.6: one column is added to the projects table.
 
-## 1.0.7
-- **Tags come from Azure DevOps**: in the ticket, *Additional tags* is now a list of the tags that exist in the project (search as you type), and a new tag can still be typed. The *Default tags* of the project are chosen the same way. The list is read from Azure DevOps and kept five minutes.
-- New project option **Only send tags that already exist in Azure DevOps**, for an account that cannot create tags (a Stakeholder can only use existing ones): the other tags are left out and the technician is told, instead of the creation failing. In the ticket only existing tags can then be chosen.
-- *Default fields* can use more values from the ticket: `{entity}`, `{category}` and `{requester}` (for a "Client" field filled from the GLPI entity, for example), next to `{priority}`, `{id}` and `{title}`.
-- Update from 1.0.6: one column is added to the projects table; nothing changes until the option is ticked.
-
 ## 1.0.6
 - **Every type of the project is now offered in the ticket by default** (User Story, Bug, Task, Epic...), as read from Azure DevOps at the connection test, the default type first. In 1.0.5 only the default type was offered unless other types were picked in the project: that was not what was asked for.
 - Restricting the list is now an explicit option of the project: *Only offer some types in the ticket*, then the types to offer (the default type is always offered).
