@@ -225,6 +225,10 @@ msgid "Attachment not copied (%1$s): %2$s"
 msgstr "Pièce jointe non copiée (%1$s) : %2$s"
 
 #: src/Link.php
+msgid "Azure DevOps"
+msgstr "Azure DevOps"
+
+#: src/Link.php
 msgid "Create or link a work item"
 msgstr "Créer ou lier un élément de travail"
 
@@ -274,15 +278,15 @@ msgstr "Ce ticket a déjà un élément de travail ouvert de type « %s » cré�
 
 #: src/Link.php
 msgid "The parent work item #%d was not found."
-msgstr "L'élément parent n°%d est introuvable."
+msgstr "L'élément de travail parent n°%d est introuvable."
 
 #: src/Link.php
 msgid "The parent work item #%d belongs to another Azure DevOps project."
-msgstr "L'élément parent n°%d appartient à un autre projet Azure DevOps."
+msgstr "L'élément de travail parent n°%d appartient à un autre projet Azure DevOps."
 
 #: src/Link.php
 msgid "A work item of type \"%s\" cannot be used as a parent in this project."
-msgstr "Un élément de type « %s » ne peut pas servir de parent dans ce projet."
+msgstr "Un élément de travail de type « %s » ne peut pas servir de parent dans ce projet."
 
 #: src/Link.php
 msgid "Select a work item."
@@ -313,10 +317,8 @@ msgid "The work item exists on Azure DevOps (%s) but could not be linked to the 
 msgstr "L'élément de travail existe sur Azure DevOps (%s) mais n'a pas pu être lié au ticket."
 
 #: src/Link.php
-msgid "Azure DevOps work item"
-msgid_plural "Azure DevOps work items"
-msgstr[0] "Élément de travail Azure DevOps"
-msgstr[1] "Éléments de travail Azure DevOps"
+msgid "The ticket is solved or closed: no action is possible on its Azure DevOps work items."
+msgstr "Le ticket est résolu ou clos : aucune action n'est possible sur ses éléments de travail Azure DevOps."
 
 #: src/Project.php
 msgid "Project not found."
@@ -403,10 +405,6 @@ msgstr "L'élément de travail Azure DevOps %1$s a été déplacé vers le proje
 #: src/Sync.php
 msgid "The Azure DevOps work item %s was removed from the backlog. It is not followed anymore: the ticket is left unchanged."
 msgstr "L'élément de travail Azure DevOps %s a été retiré du backlog. Il n'est plus suivi : le ticket est laissé inchangé."
-
-#: templates/config.html.twig
-msgid "Azure DevOps"
-msgstr "Azure DevOps"
 
 #: templates/config.html.twig
 msgid "Azure DevOps projects"
@@ -867,10 +865,6 @@ msgstr "Rechercher un groupe…"
 #: templates/project.html.twig
 msgid "Search a user…"
 msgstr "Rechercher un utilisateur…"
-
-#: templates/ticket_tab.html.twig
-msgid "Azure DevOps work items"
-msgstr "Éléments de travail Azure DevOps"
 
 #: templates/ticket_tab.html.twig
 msgid "No Azure DevOps work item is linked to this ticket."

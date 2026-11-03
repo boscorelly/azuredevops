@@ -101,6 +101,7 @@ Ticket tab **Azure DevOps**:
 
 - **Create a work item**: pick a project, the **type** of work item (User Story, Bug… among those the project offers; the default type if you leave it), optionally a parent (Epic / Feature, searched by title or number), tags, and the followup (private / public / none). The work item contains the ticket details, the description (HTML), the inline images and the attachments uploaded to Azure DevOps, and a hyperlink back to the ticket.
 - **Link an existing work item**: pick a project and search by title or number. The same Epic can be linked to many tickets.
+- **A solved or closed ticket is left as it is**: its links stay visible, but no work item can be created, linked, refreshed or unlinked (the forms and buttons are hidden and the server refuses them). Reopen the ticket to act again.
 - The tab shows the parent chain (Epic › Feature), the type, the Azure DevOps state and the last check.
 
 | Situation | Behaviour |

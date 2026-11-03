@@ -2,6 +2,14 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.9
+- **No action is possible on a solved or closed ticket** (or one in the trash): the tab shows its links but no form and no *Refresh* / *Unlink* button, with a note, and the server refuses a create, link, refresh or unlink sent anyway (a forged request included), before anything is sent to Azure DevOps. If the ticket is reopened, the actions are available again. The automatic follow-up of the work items is not affected.
+- **The tab and the rights tab of the profiles are called "Azure DevOps"** (they were "Azure DevOps work items" / "Éléments de travail Azure DevOps"), like the card inside the tab. The icon of the tab is unchanged.
+- **Colour logo of the plugin** (`azuredevops.png`, the Azure glyph of the tab icon in Azure blue), referenced by the new `<logo>` tag of `azuredevops.xml`.
+- **Fix: the plugin name tag of `azuredevops.xml` was `<n>` instead of `<name>`** (since 1.0.0), so the plugin directory could not read its name.
+- French and English catalogues checked for consistency (all strings translated, same placeholders, "élément de travail" everywhere); three French messages about the parent work item were harmonised. New tests check the language catalogues and the package (xml, logo, versions, changelog).
+- Update from 1.0.8: nothing to migrate.
+
 ## 1.0.8
 - **A required field that is not really one can be left out of the ticket.** Azure DevOps reports as required some fields that its own form does not ask (hidden from the layout, or filled in by the process with a default value). In the project, each required field now has an **Ask in the ticket** box (ticked by default), and a column shows the **default value given by the process** to help decide. A field left unticked is no longer asked in the ticket; its default value from the project, if any, still applies. The choice is kept per type and survives the next saves and refreshes.
 - **The list of the types stays up to date by itself**: when a ticket is opened, the list is read again from Azure DevOps if it is more than an hour old (one request), so a type added or removed in Azure DevOps shows up without any test of the connection. The required fields already read are kept for a day, then read again when the type is next chosen. A failure of Azure DevOps changes nothing and is retried five minutes later.

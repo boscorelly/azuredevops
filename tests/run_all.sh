@@ -13,4 +13,6 @@ php "$D/integration.php" | grep -v '^  ok' | tail -12
 lang fr_FR   # the web test also checks the French and the English-fallback catalogues
 python3 "$D/http_test.py" "$(cat /tmp/ado_last_ticket_id)" | grep -v '^  ok' | tail -14
 python3 "$D/ui_fields_test.py" "$(cat /tmp/ado_last_ticket_id)" | grep -v '^  ok' | tail -6
+python3 "$D/locales_check.py" | grep -v '^  ok' | tail -6
+python3 "$D/package_check.py" | grep -v '^  ok' | tail -6
 (cd "$GLPI_ROOT" && sh "$D/upgrade_test.sh" | grep -v '^  ok')

@@ -225,6 +225,10 @@ msgid "Attachment not copied (%1$s): %2$s"
 msgstr ""
 
 #: src/Link.php
+msgid "Azure DevOps"
+msgstr ""
+
+#: src/Link.php
 msgid "Create or link a work item"
 msgstr ""
 
@@ -313,10 +317,8 @@ msgid "The work item exists on Azure DevOps (%s) but could not be linked to the 
 msgstr ""
 
 #: src/Link.php
-msgid "Azure DevOps work item"
-msgid_plural "Azure DevOps work items"
-msgstr[0] ""
-msgstr[1] ""
+msgid "The ticket is solved or closed: no action is possible on its Azure DevOps work items."
+msgstr ""
 
 #: src/Project.php
 msgid "Project not found."
@@ -402,10 +404,6 @@ msgstr ""
 
 #: src/Sync.php
 msgid "The Azure DevOps work item %s was removed from the backlog. It is not followed anymore: the ticket is left unchanged."
-msgstr ""
-
-#: templates/config.html.twig
-msgid "Azure DevOps"
 msgstr ""
 
 #: templates/config.html.twig
@@ -866,10 +864,6 @@ msgstr ""
 
 #: templates/project.html.twig
 msgid "Search a user…"
-msgstr ""
-
-#: templates/ticket_tab.html.twig
-msgid "Azure DevOps work items"
 msgstr ""
 
 #: templates/ticket_tab.html.twig

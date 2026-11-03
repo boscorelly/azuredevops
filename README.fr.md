@@ -101,6 +101,7 @@ Onglet **Azure DevOps** du ticket :
 
 - **Créer un élément de travail** : choisissez un projet, le **type** d'élément (User Story, Bug… parmi ceux que le projet propose ; le type par défaut si vous n'y touchez pas), éventuellement un parent (Epic / Feature, recherché par titre ou numéro), des tags et le suivi (privé / public / aucun). L'élément contient les informations du ticket, la description (HTML), les images en ligne et les pièces jointes envoyées dans Azure DevOps, et un lien hypertexte vers le ticket.
 - **Lier un élément existant** : choisissez un projet et recherchez par titre ou numéro. Un même Epic peut être lié à plusieurs tickets.
+- **Un ticket résolu ou clos n'est plus modifiable** : ses liens restent visibles, mais on ne peut plus créer, lier, actualiser ni délier d'élément (formulaires et boutons masqués, et le serveur refuse). Rouvrez le ticket pour agir de nouveau.
 - L'onglet affiche la chaîne de parents (Epic › Feature), le type, l'état Azure DevOps et la dernière vérification.
 
 | Situation | Comportement |

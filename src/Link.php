@@ -85,7 +85,8 @@ class Link extends CommonDBTM
 
     public static function getTypeName($nb = 0): string
     {
-        return _n('Azure DevOps work item', 'Azure DevOps work items', $nb, 'azuredevops');
+        // The tab and the rights tab of the profiles are simply called "Azure DevOps"
+        return __('Azure DevOps', 'azuredevops');
     }
 
     public static function getIcon(): string
@@ -187,6 +188,7 @@ class Link extends CommonDBTM
         }
 
         $users_id = (int) Session::getLoginUserID();
+        $locked   = self::isLocked($ticket);
         $links    = [];
         $visible  = self::visibleLinks($ticket->getID(), $users_id);
         foreach ($visible as $row) {
@@ -232,9 +234,10 @@ class Link extends CommonDBTM
             'projects'         => $projects,
             'config'           => $config,
             'any_project'      => Project::all(true) !== [],
-            'can_create'       => $projects !== [] && self::canCreate(),
-            'can_update'       => self::canUpdate(),
-            'can_delete'       => self::canDelete(),
+            'locked'           => $locked,
+            'can_create'       => !$locked && $projects !== [] && self::canCreate(),
+            'can_update'       => !$locked && self::canUpdate(),
+            'can_delete'       => !$locked && self::canDelete(),
             'can_config'       => Session::haveRight('config', UPDATE),
             'default_followup' => self::defaultFollowupMode(),
             'default_notify'   => Settings::get('notify_requester') === '1',
@@ -305,6 +308,9 @@ class Link extends CommonDBTM
         /** @var \DBmysql $DB */
         global $DB;
 
+        if (self::isLocked($ticket)) {
+            throw new RuntimeException(self::lockedMessage());
+        }
         $project = self::usableProject($projects_id, $users_id);
         // The type chosen in the ticket (it must be one the project offers), else the project's default type.
         $type = Project::resolveType($project, $type);
@@ -387,6 +393,9 @@ class Link extends CommonDBTM
      */
     public static function linkExisting(Ticket $ticket, int $projects_id, int $workitem_id, int $users_id = 0, ?string $followup = null): array
     {
+        if (self::isLocked($ticket)) {
+            throw new RuntimeException(self::lockedMessage());
+        }
         $project = self::usableProject($projects_id, $users_id);
         if ($workitem_id <= 0) {
             throw new RuntimeException(__('Select a work item.', 'azuredevops'));
@@ -484,6 +493,21 @@ class Link extends CommonDBTM
         }
 
         return $link;
+    }
+
+    /**
+     * A solved or closed ticket (or one in the trash) is left as it is: no work item can be created, linked, refreshed or
+     * unlinked from it. If the ticket is reopened, the actions are available again.
+     */
+    public static function isLocked(Ticket $ticket): bool
+    {
+        return !empty($ticket->fields['is_deleted'])
+            || in_array((int) ($ticket->fields['status'] ?? 0), [Ticket::SOLVED, Ticket::CLOSED], true);
+    }
+
+    public static function lockedMessage(): string
+    {
+        return __('The ticket is solved or closed: no action is possible on its Azure DevOps work items.', 'azuredevops');
     }
 
     /**

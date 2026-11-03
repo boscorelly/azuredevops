@@ -690,6 +690,32 @@ mock('/_mock/fail', ['status' => 0]);
 ok('Azure DevOps failing: no error for the technician, the cache is kept, next attempt in about five minutes', Project::offeredTypes($p5) === Project::offeredTypes($p4) && Project::requiredFieldsRead($p5, 'Bug') && abs(strtotime((string) Project::cache($p5)['fetched_at']) - (time() - Project::TYPES_MAX_AGE + 300)) < 60);
 Project::testAndCache($toto);
 
+echo "== Solved or closed ticket: no action\n";
+$tlock = newTicket('Verrou');
+$rl = Link::createFromTicket($tlock, $toto, 2, 0, '', false, 'none', false);
+$setStatus = function (int $status, int $deleted = 0) use ($DB, $tlock) { $DB->update('glpi_tickets', ['status' => $status, 'is_deleted' => $deleted], ['id' => $tlock->getID()]); $tlock->getFromDB($tlock->getID()); };
+ok('open ticket (new, assigned, planned, waiting): not locked', (function () use ($setStatus, $tlock) { foreach ([Ticket::INCOMING, Ticket::ASSIGNED, Ticket::PLANNED, Ticket::WAITING] as $st) { $setStatus($st); if (Link::isLocked($tlock)) { return false; } } return true; })());
+$setStatus(Ticket::SOLVED);
+ok('solved ticket: locked', Link::isLocked($tlock));
+$setStatus(Ticket::CLOSED);
+ok('closed ticket: locked', Link::isLocked($tlock));
+$setStatus(Ticket::ASSIGNED, 1);
+ok('ticket in the trash: locked', Link::isLocked($tlock));
+$batches = fn() => count(requests('POST /acme/_apis/wit/workitemsbatch'));
+foreach ([[Ticket::SOLVED, 0], [Ticket::CLOSED, 0], [Ticket::ASSIGNED, 1]] as [$st, $del]) {
+    $setStatus($st, $del);
+    $n_c = $creates(); $n_b = $batches();
+    try { Link::createFromTicket($tlock, $toto, 2, 0, '', true, 'none', false); ok("create status $st/$del", false); }
+    catch (RuntimeException $e) { ok("status $st (deleted $del): creating a work item is refused with the message", $e->getMessage() === Link::lockedMessage()); }
+    try { Link::linkExisting($tlock, $toto, 500, 2); ok("link status $st/$del", false); }
+    catch (RuntimeException $e) { ok("status $st (deleted $del): linking an existing one is refused", $e->getMessage() === Link::lockedMessage()); }
+    ok("status $st (deleted $del): nothing was sent to Azure DevOps", $creates() === $n_c && $batches() === $n_b);
+}
+ok('the links of a locked ticket are still there (read only)', countElementsInTable(Link::getTable(), ['tickets_id' => $tlock->getID()]) === 1);
+$setStatus(Ticket::ASSIGNED, 0);
+$rl2 = Link::createFromTicket($tlock, $toto, 2, 0, '', true, 'none', false);
+ok('reopened: the actions are available again', $rl2['link']->fields['state'] === 'opened');
+
 echo "== Microsoft Entra application instead of a personal token\n";
 $signins = fn() => count(mock('/_mock/dump')['token_requests']);
 $authCount = fn(string $type) => count(array_filter(requests(), fn($r) => $r['auth_type'] === $type));

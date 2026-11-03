@@ -92,6 +92,9 @@ final class WorkItemController extends AbstractController
         if (!Link::canUpdate()) {
             throw new AccessDeniedHttpException();
         }
+        if ($locked = $this->lockedResponse((int) $link->fields['tickets_id'])) {
+            return $locked;
+        }
         try {
             Session::addMessageAfterRedirect(
                 htmlspecialchars(sprintf(__('Status: %s', 'azuredevops'), Sync::refresh($link))),
@@ -114,6 +117,9 @@ final class WorkItemController extends AbstractController
             throw new AccessDeniedHttpException();
         }
         $tickets_id = (int) $link->fields['tickets_id'];
+        if ($locked = $this->lockedResponse($tickets_id)) {
+            return $locked;
+        }
         $link->delete(['id' => $id], true);
         Session::addMessageAfterRedirect(__('The work item is no longer followed. It was not changed on Azure DevOps.', 'azuredevops'));
 
@@ -173,6 +179,9 @@ final class WorkItemController extends AbstractController
             throw new AccessDeniedHttpException();
         }
         $ticket = $this->getReadableTicket((int) $request->query->get('ticket', 0));
+        if (Link::isLocked($ticket)) {
+            throw new AccessDeniedHttpException();
+        }
         try {
             $type = Project::resolveType($project, (string) $request->query->get('type', ''));   // only a type the project offers
         } catch (\RuntimeException) {
@@ -259,6 +268,21 @@ final class WorkItemController extends AbstractController
         }
 
         return $link;
+    }
+
+    /**
+     * On a solved or closed ticket no action is possible: tell the user and go back to the ticket.
+     */
+    private function lockedResponse(int $tickets_id): ?Response
+    {
+        $ticket = new Ticket();
+        if ($ticket->getFromDB($tickets_id) && Link::isLocked($ticket)) {
+            Session::addMessageAfterRedirect(htmlspecialchars(Link::lockedMessage()), false, ERROR);
+
+            return $this->backToTicket($tickets_id);
+        }
+
+        return null;
     }
 
     private function flashCreated(string $format, Link $link): void

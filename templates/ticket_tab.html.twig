@@ -1,6 +1,6 @@
 <div class="card m-3">
     <div class="card-header">
-        <h3 class="card-title"><i class="ti ti-brand-azure me-2"></i>{{ __('Azure DevOps work items', 'azuredevops') }}</h3>
+        <h3 class="card-title"><i class="ti ti-brand-azure me-2"></i>{{ __('Azure DevOps', 'azuredevops') }}</h3>
     </div>
 
     {% if links is empty %}
@@ -77,7 +77,9 @@
         </div>
     {% endif %}
 
-    {% if not any_project %}
+    {% if locked %}
+        <div class="card-footer text-muted"><i class="ti ti-lock"></i> {{ __('The ticket is solved or closed: no action is possible on its Azure DevOps work items.', 'azuredevops') }}</div>
+    {% elseif not any_project %}
         <div class="card-footer text-muted">
             {{ __('The plugin is not configured yet.', 'azuredevops') }}
             {% if can_config %}<a href="{{ base }}/Config">{{ __('Configure it', 'azuredevops') }}</a>{% endif %}

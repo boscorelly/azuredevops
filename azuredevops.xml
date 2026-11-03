@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
-    <n>Azure DevOps</n>
+    <name>Azure DevOps</name>
     <key>azuredevops</key>
     <state>stable</state>
+    <logo>https://raw.githubusercontent.com/boscorelly/azuredevops/main/azuredevops.png</logo>
     <description>
         <short>
             <en>Create Azure DevOps work items from GLPI tickets, under an Epic or a Feature, and automatically act on the ticket when they are done.</en>
@@ -41,6 +42,11 @@ Créez un élément de travail (User Story, Product Backlog Item, Issue...) depu
         <author>Azure DevOps plugin contributors</author>
     </authors>
     <versions>
+        <version>
+            <num>1.0.9</num>
+            <compatibility>~11.0.0</compatibility>
+            <download_url>https://github.com/boscorelly/azuredevops/releases/download/1.0.9/glpi-azuredevops-1.0.9.tar.bz2</download_url>
+        </version>
         <version>
             <num>1.0.8</num>
             <compatibility>~11.0.0</compatibility>
