@@ -2,6 +2,11 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.10
+- **Fix: the logo now shows in GLPI.** GLPI reads the logo of a plugin from a file named exactly `logo.png` at the root of the plugin (the plugin list serves it), not from the address of the descriptor. The 1.0.9 logo was called `azuredevops.png`, so GLPI did not find it. The file is now `logo.png`, and `<logo>` in `azuredevops.xml` points to it (it is used by the plugins directory).
+- A test now checks that GLPI serves the logo of the plugin, and that the package contains `logo.png`.
+- Update from 1.0.9: nothing to migrate.
+
 ## 1.0.9
 - **No action is possible on a solved or closed ticket** (or one in the trash): the tab shows its links but no form and no *Refresh* / *Unlink* button, with a note, and the server refuses a create, link, refresh or unlink sent anyway (a forged request included), before anything is sent to Azure DevOps. If the ticket is reopened, the actions are available again. The automatic follow-up of the work items is not affected.
 - **The tab and the rights tab of the profiles are called "Azure DevOps"** (they were "Azure DevOps work items" / "Éléments de travail Azure DevOps"), like the card inside the tab. The icon of the tab is unchanged.

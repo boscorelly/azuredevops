@@ -25,12 +25,12 @@ text = lambda el: ''.join(n.data for n in el.childNodes if n.nodeType in (3, 4))
 check('the plugin name is in <name> (and not in a misspelt tag)', len(tag('name')) == 1 and text(tag('name')[0]) == 'Azure DevOps' and not tag('n'))
 check('<key> is the plugin directory', len(tag('key')) == 1 and text(tag('key')[0]) == 'azuredevops')
 logo = text(tag('logo')[0]) if tag('logo') else ''
-check('<logo> points to the png of the repository (raw.githubusercontent.com, like the other plugins)', re.fullmatch(r'https://raw\.githubusercontent\.com/boscorelly/azuredevops/main/azuredevops\.png', logo) is not None, logo)
+check('<logo> points to logo.png of the repository (raw.githubusercontent.com, like the other plugins)', re.fullmatch(r'https://raw\.githubusercontent\.com/boscorelly/azuredevops/main/logo\.png', logo) is not None, logo)
 check('<logo> comes right after <state>, as in the reference plugins', [c.tagName for c in top.childNodes if c.nodeType == 1][2:4] == ['state', 'logo'])
-png = os.path.join(root, 'azuredevops.png')
+png = os.path.join(root, 'logo.png')   # GLPI serves the logo of a plugin from this exact file name
 data = open(png, 'rb').read() if os.path.exists(png) else b''
 w, h = struct.unpack('>II', data[16:24]) if data[:8] == b'\x89PNG\r\n\x1a\n' else (0, 0)
-check('the logo file is a PNG, square, at least 64 px, and light', data[:8] == b'\x89PNG\r\n\x1a\n' and w == h and w >= 64 and len(data) < 100_000, (w, h, len(data)))
+check('logo.png (the name GLPI looks for) is a PNG, square, at least 40 px, and light', data[:8] == b'\x89PNG\r\n\x1a\n' and w == h and w >= 40 and len(data) < 100_000, (w, h, len(data)))
 for t in ('homepage', 'download', 'issues', 'readme', 'license', 'description', 'authors', 'versions', 'langs', 'tags'):
     check(f'<{t}> is present', len(tag(t)) == 1)
 
@@ -44,5 +44,8 @@ headers = re.findall(r'^## (\S+)', changelog, re.M)
 check('no version is described twice in the changelog', len(headers) == len(set(headers)), headers[:6])
 check('the changelog describes the current version first', headers and headers[0] == version, headers[:2])
 check('the changelog and the xml list the same versions', headers == nums, (headers, nums))
+check('the old file name is gone (GLPI would ignore it)', not os.path.exists(os.path.join(root, 'azuredevops.png')))
+export_rules = read('.gitattributes')
+check('logo.png is not left out of the release archives', 'logo.png' not in export_rules)
 print(f'\n{ok_count} passed, {fail_count} failed')
 sys.exit(1 if fail_count else 0)

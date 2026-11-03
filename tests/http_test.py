@@ -452,6 +452,12 @@ for who, client in (('administrator (French)', a),):
 s, pg, _ = tab(a, ticket_id, tok)
 check('inside the tab: the card is "Azure DevOps" too, with the same icon as before', re.search(r'<h3 class="card-title"><i class="ti ti-brand-azure me-2"></i>Azure DevOps</h3>', pg) is not None, re.findall(r'<h3 class="card-title">.{0,90}', pg)[:1])
 
+print('== the logo of the plugin is shown by GLPI')
+s, body, h = a.req('/Plugin/azuredevops/Logo')
+check('GLPI serves the logo of the plugin (logo.png at the root of the plugin)', s == 200 and h.get('Content-Type', '').startswith('image/png') and len(body) > 1000, f'{s} {h.get("Content-Type")} {len(body)}')
+s, page, _ = a.req('/ajax/marketplace.php?action=refresh_plugin_list&tab=installed', headers=XH)
+check('the list of the installed plugins shows it', s == 200 and re.search(r"<img[^>]*/Plugin/azuredevops/Logo", page) is not None, f'{s} {len(page)}')
+
 print('== languages: the user language if the plugin has it, otherwise English')
 s, page, _ = tab(a, ticket_id, tok)
 check('administrator (instance language fr_FR): French', 'Créer un élément de travail' in page and 'Lier un élément de travail existant' in page, text(page)[:200])

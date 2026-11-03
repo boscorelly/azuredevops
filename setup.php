@@ -15,7 +15,7 @@ use GlpiPlugin\Azuredevops\Link;
 use GlpiPlugin\Azuredevops\Profile as PluginProfile;
 use GlpiPlugin\Azuredevops\ProjectAccess;
 
-define('PLUGIN_AZUREDEVOPS_VERSION', '1.0.9');
+define('PLUGIN_AZUREDEVOPS_VERSION', '1.0.10');
 
 // Minimal GLPI version, inclusive
 define('PLUGIN_AZUREDEVOPS_MIN_GLPI', '11.0.0');
