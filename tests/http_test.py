@@ -106,7 +106,8 @@ s_p, prof, _ = a.req('/front/profile.form.php?id=4')
 vertical = "class='d-flex card-tabs flex-column flex-md-row vertical'"
 check('same layout as GLPI\'s own administration pages (the profile page): vertical tabs on the left', s == 200 and vertical in page and vertical in prof and "id='tabspanel'" in page and 'flex-md-column' in page, str(s))
 labels = dict(tab_labels(page, 'ConfigTabs'))
-expected = [('Azure DevOps projects', 'Projets Azure DevOps'), ('Work item creation', "Création des éléments de travail"), ('When a work item is done on Azure DevOps', 'Quand un élément de travail est terminé sur Azure DevOps'), ('Advanced', 'Avancé'), ('Rights by profile', 'Droits par profil')]
+expected = [('Azure DevOps projects', 'Projets Azure DevOps'), ('Work item creation', "Création des éléments de travail"), ('When a work item is done', 'Quand un élément de travail est terminé'), ('Advanced', 'Avancé'), ('Rights by profile', 'Droits par profil')]
+check('the completion tab is called "When a work item is done" / "Quand un élément de travail est terminé", without "on Azure DevOps"', 'sur Azure DevOps' not in labels.get('3', '') and 'on Azure DevOps' not in labels.get('3', '') and labels.get('3') in ('When a work item is done', 'Quand un élément de travail est terminé'), labels.get('3'))
 check('one tab per zone of settings: projects, creation, completion, advanced, rights', list(labels) == ['1', '2', '3', '4', '5'] and all(labels[str(i + 1)] in pair for i, pair in enumerate(expected)), str(labels))
 check('the old full page is gone: nothing but the tabs on the page itself', 'name="title_template"' not in page and 'name="profiles[]"' not in page)
 s1, c1 = config_tab(a, 1); s2, c2 = config_tab(a, 2); s3, c3 = config_tab(a, 3); s4, c4 = config_tab(a, 4); s5, c5 = config_tab(a, 5)
@@ -120,6 +121,25 @@ check('advanced tab: the addresses', 'name="api_base_url"' in c4 and 'name="entr
 check('rights tab: rights per profile', 'name="profiles[]"' in c5 and 'name="rights[6][]"' in c5)
 s_, _b, _h = a.req(f'{P}/Config', {'_tab': 'creation', 'title_template': 'x'})
 check('config POST without CSRF token rejected', s_ in (400, 403), str(s_))
+
+print('== administrator: rights by profile list every profile')
+sql("delete from glpi_profilerights where profiles_id in (select id from glpi_profiles where name like 'Web probe %'); delete from glpi_profiles where name like 'Web probe %'")
+sql("insert into glpi_profiles (name, interface, is_default) values ('Web probe standard', 'central', 0), ('Web probe simple', 'helpdesk', 0)")
+pidc = int(sql("select id from glpi_profiles where name='Web probe standard'")); pidh = int(sql("select id from glpi_profiles where name='Web probe simple'"))
+c5n = config_tab(a, 5)[1]
+boxes = lambda pid: re.findall(rf'<input[^>]*name="rights\[{pid}\]\[\]"[^>]*>', c5n, re.S)
+check('a profile created after the plugin (standard interface) is in the table, with editable boxes', 'Web probe standard' in c5n and f'name="profiles[]" value="{pidc}"' in c5n and len(boxes(pidc)) == 4 and not any('disabled' in b for b in boxes(pidc)), len(boxes(pidc)))
+check('a profile of the simplified interface is in the table too, marked with its interface', 'Web probe simple' in c5n and either(c5n, 'Simplified interface', 'Interface simplifiée'))
+check('but with its boxes disabled and not submitted', len(boxes(pidh)) == 4 and all('disabled' in b for b in boxes(pidh)) and f'name="profiles[]" value="{pidh}"' not in c5n)
+check('and a note says why', either(html.unescape(c5n), 'simplified interface of a new profile', "interface simplifiée d'un nouveau profil"))
+check('the default profiles are all there as before', all(n in c5n for n in ('Super-Admin', 'Technician', 'Supervisor', 'Self-Service')))
+vals = re.findall(rf'name="rights\[{pidc}\]\[\]" value="(\d+)"', c5n)
+s, _, _ = a.req(f'{P}/Config/Rights', {'_glpi_csrf_token': form_token(c5n, f'{P}/Config/Rights'), 'profiles[]': [str(pidc), str(pidh)], f'rights[{pidc}][]': [vals[0], vals[2]], f'rights[{pidh}][]': vals})
+right_of = lambda pid: int(sql(f"select ifnull((select rights from glpi_profilerights where profiles_id={pid} and name='plugin_azuredevops_workitem'), 0)"))
+check('rights saved for the new standard profile (read is added), never for the simplified one even when forged', s in (302, 303) and right_of(pidc) == (int(vals[0]) | int(vals[2]) | 1) and right_of(pidh) == 0, f'{s} {right_of(pidc)} {right_of(pidh)}')
+c5n = config_tab(a, 5)[1]
+check('the saved rights are shown ticked', len([b for b in boxes(pidc) if 'checked' in b]) >= 2)
+sql("delete from glpi_profilerights where profiles_id in (select id from glpi_profiles where name like 'Web probe %'); delete from glpi_profiles where name like 'Web probe %'")
 
 print('== administrator: each tab saves its own zone only')
 title0 = setting('title_template'); followup0 = setting('close_followup'); base0 = setting('api_base_url')

@@ -49,6 +49,20 @@ for path in sorted(glob.glob('locales/*.po')):
     check(f'{lang}: the tab and the plugin are called "Azure DevOps"', po.get(('Azure DevOps', None)) == ['Azure DevOps'], po.get(('Azure DevOps', None)))
     check(f'{lang}: no heading still called "work items"', ('Azure DevOps work items', None) not in po and ('Azure DevOps work item', 'Azure DevOps work items') not in po)
 
+# A tab and the card it shows are called the same: both use the same text, so they cannot differ in any language.
+def tab_labels(php, constants):
+    texts = re.findall(r"createTabEntry\(__\('((?:[^'\\]|\\.)*)', 'azuredevops'\)", open(php, encoding='utf-8').read())
+    return dict(zip(constants, texts))
+def card_title(path):
+    m = re.search(r'<h3 class="card-title">\{\{ __\(\'((?:[^\'\\]|\\.)*)\', \'azuredevops\'\) \}\}</h3>', open(path, encoding='utf-8').read())
+    return m.group(1) if m else None
+for php, constants, folder in (('src/ConfigTabs.php', ['projects', 'creation', 'closure', 'advanced', 'rights'], 'config'),
+                               ('src/ProjectTabs.php', ['connection', 'work_items', 'fields', 'access'], 'project')):
+    labels = tab_labels(php, constants)
+    check(f'{folder}: every tab has its label', list(labels) == constants, labels)
+    for name in constants:
+        title = card_title(f'templates/{folder}/{name}.html.twig')
+        check(f'{folder}/{name}: the tab and its card have the same name ("{labels.get(name)}")', title is not None and title == labels.get(name), (labels.get(name), title))
 fr = locales.read_po('locales/fr_FR.po')
 wrong = [k[0][:70] for k, v in fr.items() if re.search(r'work items?\b', k[0], re.I) and 'Work Items' not in k[0]
          and (not re.search(r'[ée]l[ée]ments?', ' '.join(v), re.I) or re.search(r'work items?\b', ' '.join(v), re.I))]

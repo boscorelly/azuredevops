@@ -2,7 +2,7 @@
     <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="_tab" value="closure">
     <div class="card mb-3">
-        <div class="card-header"><h3 class="card-title">{{ __('When a work item is done on Azure DevOps', 'azuredevops') }}</h3></div>
+        <div class="card-header"><h3 class="card-title">{{ __('When a work item is done', 'azuredevops') }}</h3></div>
         <div class="card-body">
             <p class="text-muted">{{ __('A work item is "done" when its state belongs to a category chosen in its project (Completed by default). Epics and Features (the "followup only" types of the project) only add a private followup. For the other work items, the actions concerning the requester wait until every work item of the ticket is done.', 'azuredevops') }}</p>
             <h4 class="mb-2">{{ __('For technicians', 'azuredevops') }}</h4>

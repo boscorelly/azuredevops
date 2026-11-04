@@ -43,6 +43,11 @@ class Link extends CommonDBTM
      */
     public static function saveProfileRights(int $profiles_id, array $ticked): void
     {
+        // The plugin is for the standard (technician) interface: rights are never stored for the other profiles.
+        if (countElementsInTable('glpi_profiles', ['id' => $profiles_id, 'interface' => 'central']) === 0) {
+            return;
+        }
+
         $allowed = array_keys((new self())->getRights());
         $value   = 0;
         foreach ($ticked as $right) {

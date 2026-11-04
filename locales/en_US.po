@@ -101,8 +101,8 @@ msgid "Work item creation"
 msgstr "Work item creation"
 
 #: src/ConfigTabs.php
-msgid "When a work item is done on Azure DevOps"
-msgstr "When a work item is done on Azure DevOps"
+msgid "When a work item is done"
+msgstr "When a work item is done"
 
 #: src/ConfigTabs.php
 msgid "Advanced"
@@ -629,6 +629,10 @@ msgstr "Rights are cumulative: \"Read\" is required for the others. The same rig
 #: templates/config/rights.html.twig
 msgid "Profile"
 msgstr "Profile"
+
+#: templates/config/rights.html.twig
+msgid "Profiles that do not use the standard interface (for example the simplified interface of a new profile) cannot use the plugin: they are listed for information, without rights. To give one of them rights, set its interface to the standard one in Administration > Profiles."
+msgstr "Profiles that do not use the standard interface (for example the simplified interface of a new profile) cannot use the plugin: they are listed for information, without rights. To give one of them rights, set its interface to the standard one in Administration > Profiles."
 
 #: templates/config/rights.html.twig
 msgid "You need the update right on profiles to change these rights."

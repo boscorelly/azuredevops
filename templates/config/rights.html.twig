@@ -15,12 +15,15 @@
                     </thead>
                     <tbody>
                     {% for profile in profiles %}
-                        <tr>
-                            <td>{{ profile.name }}<input type="hidden" name="profiles[]" value="{{ profile.id }}"></td>
+                        <tr {{ profile.central ? '' : 'class="text-muted"' }}>
+                            <td>
+                                {{ profile.name }}
+                                {% if profile.central %}<input type="hidden" name="profiles[]" value="{{ profile.id }}">{% else %}<span class="badge bg-secondary-lt ms-1">{{ profile.interface_label }}</span>{% endif %}
+                            </td>
                             {% for value, label in right_labels %}
                                 <td class="text-center">
                                     <input class="form-check-input" type="checkbox" name="rights[{{ profile.id }}][]" value="{{ value }}"
-                                           {{ (profile.value b-and value) ? 'checked' }} {{ can_edit_rights ? '' : 'disabled' }}
+                                           {{ (profile.central and (profile.value b-and value)) ? 'checked' }} {{ (can_edit_rights and profile.central) ? '' : 'disabled' }}
                                            aria-label="{{ profile.name }} – {{ label }}">
                                 </td>
                             {% endfor %}
@@ -29,6 +32,9 @@
                     </tbody>
                 </table>
             </div>
+            {% if profiles|filter(p => not p.central)|length > 0 %}
+                <div class="text-muted small mb-2"><i class="ti ti-info-circle"></i> {{ __('Profiles that do not use the standard interface (for example the simplified interface of a new profile) cannot use the plugin: they are listed for information, without rights. To give one of them rights, set its interface to the standard one in Administration > Profiles.', 'azuredevops') }}</div>
+            {% endif %}
             {% if not can_edit_rights %}
                 <div class="text-muted small">{{ __('You need the update right on profiles to change these rights.', 'azuredevops') }}</div>
             {% endif %}

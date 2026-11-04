@@ -101,7 +101,7 @@ msgid "Work item creation"
 msgstr ""
 
 #: src/ConfigTabs.php
-msgid "When a work item is done on Azure DevOps"
+msgid "When a work item is done"
 msgstr ""
 
 #: src/ConfigTabs.php
@@ -628,6 +628,10 @@ msgstr ""
 
 #: templates/config/rights.html.twig
 msgid "Profile"
+msgstr ""
+
+#: templates/config/rights.html.twig
+msgid "Profiles that do not use the standard interface (for example the simplified interface of a new profile) cannot use the plugin: they are listed for information, without rights. To give one of them rights, set its interface to the standard one in Administration > Profiles."
 msgstr ""
 
 #: templates/config/rights.html.twig

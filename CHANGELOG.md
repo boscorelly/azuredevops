@@ -2,6 +2,11 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.12
+- **The *Rights by profile* tab lists every profile.** It only listed the profiles of the standard interface, so a profile created afterwards did not show up when GLPI had given it the *simplified* interface, which is the default of a new profile. Those profiles cannot use the plugin (it is for technicians): they are now listed too, marked with their interface, with their boxes disabled and a note saying how to give them rights (set their interface to the standard one in *Administration > Profiles*). Rights are never stored for them, even by a forged request. Profiles of the standard interface, new ones included, are edited as before.
+- **The completion tab is called "When a work item is done"** (it was "… on Azure DevOps", in English and in French: "Quand un élément de travail est terminé"), as the card inside it. A new check makes sure that every tab and the card it shows have the same name, in every language.
+- Update from 1.0.11: nothing to migrate.
+
 ## 1.0.11
 - **The administration is GLPI's standard page, with the tabs on the left, one per zone of settings** (like the profile page and the other administration pages), instead of one long page. *Setup > Plugins > Azure DevOps* has five tabs: **Azure DevOps projects**, **Work item creation**, **When a work item is done on Azure DevOps**, **Advanced** and **Rights by profile**.
 - **The page of a project has its own tabs too**: **Connection**, **Work items**, **Fields and tags** and **Who can use this project**. A new project starts with its Connection only (the other zones need a saved project) and is created restricted, so nobody can use it until users or groups are chosen.

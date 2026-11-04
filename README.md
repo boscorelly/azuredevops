@@ -132,7 +132,7 @@ English (`en_GB`, `en_US`) and French (`fr_FR`). The plugin uses **the language 
 
 ## Rights
 
-*Administration > Profiles > (profile) > Azure DevOps* tab or the **Rights by profile** table of the plugin's configuration page: read, create or link, refresh, unlink. Rights are cumulative: **read is required** for the others, and profiles of the self-service interface can never use the plugin. The configuration pages require GLPI's *Setup > Update* right. Forms use GLPI's CSRF protection. Profiles that can already update tickets get all four rights when the plugin is first installed.
+*Administration > Profiles > (profile) > Azure DevOps* tab or the **Rights by profile** table of the plugin's configuration page: read, create or link, refresh, unlink. Rights are cumulative: **read is required** for the others, and profiles of the self-service (simplified) interface can never use the plugin. The **Rights by profile** tab lists every profile: those that use the simplified interface — the default of a profile created in GLPI — are shown greyed, without rights; to give one of them rights, set its interface to the standard one in *Administration > Profiles*. The configuration pages require GLPI's *Setup > Update* right. Forms use GLPI's CSRF protection. Profiles that can already update tickets get all four rights when the plugin is first installed.
 
 ## Update
 

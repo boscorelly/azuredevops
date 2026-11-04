@@ -847,6 +847,22 @@ Link::saveProfileRights(4, [CREATE]);
 ok('ticking a right also grants read', (int) $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => 4, 'name' => Link::$rightname]])->current()['rights'] === (READ | CREATE));
 Link::saveProfileRights(4, [READ, CREATE, UPDATE, DELETE]);
 
+echo "== Rights by profile: every profile is listed, only the standard interface can have rights\n";
+$pcid = (new Profile())->add(['name' => 'ado_probe_central', 'interface' => 'central']);
+$phid = (new Profile())->add(['name' => 'ado_probe_simple', 'interface' => 'helpdesk']);
+$plist = array_column(\GlpiPlugin\Azuredevops\ConfigTabs::profiles(), null, 'id');
+ok('a profile created after the plugin (standard interface) is listed, without rights yet', isset($plist[$pcid]) && $plist[$pcid]['central'] === true && $plist[$pcid]['value'] === 0 && $plist[$pcid]['name'] === 'ado_probe_central');
+ok('a profile of the simplified interface is listed too, marked, without rights', isset($plist[$phid]) && $plist[$phid]['central'] === false && $plist[$phid]['interface_label'] !== '' && $plist[$phid]['value'] === 0);
+ok('the default profiles are still there', count(array_filter($plist, fn($p) => in_array($p['name'], ['Super-Admin', 'Technician', 'Self-Service'], true))) === 3);
+ok('only the standard-interface profiles can be changed', in_array($pcid, \GlpiPlugin\Azuredevops\ConfigTabs::centralProfileIds(), true) && !in_array($phid, \GlpiPlugin\Azuredevops\ConfigTabs::centralProfileIds(), true));
+Link::saveProfileRights($pcid, [READ, CREATE]);
+Link::saveProfileRights($phid, [READ, CREATE, UPDATE, DELETE]);
+$rightOf = fn(int $pid) => (int) ($DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => Link::$rightname]])->current()['rights'] ?? 0);
+ok('rights are stored for the standard profile (read added), never for the simplified one', $rightOf($pcid) === (READ | CREATE) && $rightOf($phid) === 0, $rightOf($pcid) . ' / ' . $rightOf($phid));
+$DB->delete('glpi_profilerights', ['profiles_id' => [$pcid, $phid]]);
+(new Profile())->delete(['id' => $pcid], true); (new Profile())->delete(['id' => $phid], true);
+ok('probe profiles removed', countElementsInTable('glpi_profiles', ['name' => ['LIKE', 'ado_probe_%']]) === 0);
+
 echo "== Clean-up: purge, projects, groups\n";
 $tid = $tv->getID();
 $tv->delete(['id' => $tid], true);

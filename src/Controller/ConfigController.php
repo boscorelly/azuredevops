@@ -143,9 +143,9 @@ final class ConfigController extends AbstractController
         }
 
         $ticked  = $request->request->all('rights');   // [profiles_id => [right, ...]]
-        $central = array_column(ConfigTabs::profiles(), 'id');
+        $central = ConfigTabs::centralProfileIds();
         foreach (array_map('intval', $request->request->all('profiles')) as $profiles_id) {
-            // Only the profiles that were displayed (central interface) can be changed.
+            // Only the profiles of the standard interface can be changed (the others are shown for information).
             if (in_array($profiles_id, $central, true)) {
                 Link::saveProfileRights($profiles_id, (array) ($ticked[$profiles_id] ?? []));
             }

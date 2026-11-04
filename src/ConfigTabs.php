@@ -41,7 +41,7 @@ class ConfigTabs extends CommonGLPI
         return [
             self::PROJECTS => self::createTabEntry(__('Azure DevOps projects', 'azuredevops'), 0, null, 'ti ti-folders'),
             self::CREATION => self::createTabEntry(__('Work item creation', 'azuredevops'), 0, null, 'ti ti-file-plus'),
-            self::CLOSURE  => self::createTabEntry(__('When a work item is done on Azure DevOps', 'azuredevops'), 0, null, 'ti ti-circle-check'),
+            self::CLOSURE  => self::createTabEntry(__('When a work item is done', 'azuredevops'), 0, null, 'ti ti-circle-check'),
             self::ADVANCED => self::createTabEntry(__('Advanced', 'azuredevops'), 0, null, 'ti ti-adjustments'),
             self::RIGHTS   => self::createTabEntry(__('Rights by profile', 'azuredevops'), 0, null, 'ti ti-shield-lock'),
         ];
@@ -173,20 +173,37 @@ class ConfigTabs extends CommonGLPI
     }
 
     /**
-     * Profiles of the central (technician) interface with their current plugin rights.
+     * Every profile with its current plugin rights. Only the profiles of the standard (technician) interface can use
+     * the plugin: the others are listed too, so that the administrator sees why they cannot be given rights.
      *
-     * @return array<int, array{id: int, name: string, value: int}>
+     * @return array<int, array{id: int, name: string, value: int, central: bool, interface_label: string}>
      */
     public static function profiles(): array
     {
         /** @var \DBmysql $DB */
         global $DB;
-        $profiles = [];
-        foreach ($DB->request(['FROM' => 'glpi_profiles', 'WHERE' => ['interface' => 'central'], 'ORDER' => 'name']) as $row) {
-            $rights     = ProfileRight::getProfileRights((int) $row['id'], [Link::$rightname]);
-            $profiles[] = ['id' => (int) $row['id'], 'name' => $row['name'], 'value' => (int) ($rights[Link::$rightname] ?? 0)];
+        $interfaces = \Profile::getInterfaces();
+        $profiles   = [];
+        foreach ($DB->request(['FROM' => 'glpi_profiles', 'ORDER' => 'name']) as $row) {
+            $central    = ($row['interface'] ?? '') === 'central';
+            $rights     = $central ? ProfileRight::getProfileRights((int) $row['id'], [Link::$rightname]) : [];
+            $profiles[] = [
+                'id'              => (int) $row['id'],
+                'name'            => $row['name'],
+                'value'           => (int) ($rights[Link::$rightname] ?? 0),
+                'central'         => $central,
+                'interface_label' => (string) ($interfaces[$row['interface'] ?? ''] ?? ($row['interface'] ?? '')),
+            ];
         }
 
         return $profiles;
+    }
+
+    /**
+     * @return int[] ids of the profiles that can use the plugin (standard interface)
+     */
+    public static function centralProfileIds(): array
+    {
+        return array_column(array_filter(self::profiles(), static fn(array $p): bool => $p['central']), 'id');
     }
 }

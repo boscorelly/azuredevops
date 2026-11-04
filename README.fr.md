@@ -132,7 +132,7 @@ Anglais (`en_GB`, `en_US`) et français (`fr_FR`). Le plugin utilise **la langue
 
 ## Droits
 
-Onglet *Administration > Profils > (profil) > Azure DevOps* ou tableau **Droits par profil** de la page de configuration : lecture, créer ou lier, actualiser, délier. Les droits sont cumulatifs : **la lecture est requise** pour les autres, et les profils de l'interface simplifiée ne peuvent jamais utiliser le plugin. Les pages de configuration exigent le droit *Configuration > Mise à jour* de GLPI. Les formulaires utilisent la protection CSRF de GLPI. Les profils qui peuvent déjà modifier les tickets reçoivent les quatre droits à la première installation.
+Onglet *Administration > Profils > (profil) > Azure DevOps* ou tableau **Droits par profil** de la page de configuration : lecture, créer ou lier, actualiser, délier. Les droits sont cumulatifs : **la lecture est requise** pour les autres, et les profils de l'interface simplifiée (auto-service) ne peuvent jamais utiliser le plugin. L'onglet **Droits par profil** liste tous les profils : ceux qui utilisent l'interface simplifiée — le choix par défaut d'un profil créé dans GLPI — sont affichés grisés, sans droits ; pour en donner à l'un d'eux, passez son interface en interface standard dans *Administration > Profils*. Les pages de configuration exigent le droit *Configuration > Mise à jour* de GLPI. Les formulaires utilisent la protection CSRF de GLPI. Les profils qui peuvent déjà modifier les tickets reçoivent les quatre droits à la première installation.
 
 ## Mise à jour
 
