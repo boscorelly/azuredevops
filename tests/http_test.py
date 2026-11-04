@@ -67,54 +67,127 @@ check('no secret in the page', 'pat-toto' not in page and 'pat-tata' not in page
 s, page, _ = a.req(f'/front/ticket.form.php?id={ticket_id}')
 check('ticket page lists the tab, with the Azure icon', s == 200 and 'ti-brand-azure' in page and '<i class="ti ti-brand-azure me-2"></i>Azure DevOps' in page, str(s))
 
-print('== administrator: configuration pages')
-s, page, _ = a.req(f'{P}/Config')
-check('config page renders', s == 200 and 'Toto' in page and 'Tata' in page, f'{s} {text(page)[:200]}')
-check('projects link to their edit page', f'{P}/Config/Project/{toto}' in page and f'{P}/Config/Project"' in page)
-check('who can use each project is shown', 'ado_group1' in page and 'ado_group2' in page)
-check('tokens never sent to the browser', 'pat-toto' not in page and 'pat-tata' not in page)
-check('rights per profile on the config page', 'name="profiles[]"' in page and 'name="rights[6][]"' in page)
-check('one single closure choice for the requester', all(f'name="requester_close_mode" value="{v}"' in page for v in ('none', 'followup', 'solve')))
-s, page, _ = a.req(f'{P}/Config', {'title_template': 'x'})
-check('config POST without CSRF token rejected', s in (400, 403), str(s))
+def ajax_tab(c, token, target, itemtype, tabclass, n, pid):
+    """HTML of one tab, loaded the way GLPI's page loads it (ajax)."""
+    u = (f'/ajax/common.tabs.php?_target={target}&_itemtype=GlpiPlugin%5CAzuredevops%5C{itemtype}&_glpi_tab=GlpiPlugin%5CAzuredevops%5C{tabclass}%24{n}&id={pid}')
+    s_, body, _ = c.req(u, headers={'X-Requested-With': 'XMLHttpRequest', 'X-Glpi-Csrf-Token': token or ''})
+    return s_, body
 
+
+def config_tab(c, n, token=None):
+    return ajax_tab(c, token or tok, '/plugins/azuredevops/Config', 'ConfigPage', 'ConfigTabs', n, 0)
+
+
+def project_tab(c, pid, n, token=None):
+    return ajax_tab(c, token or tok, '/plugins/azuredevops/Config/Project', 'ProjectPage', 'ProjectTabs', n, pid)
+
+
+def tab_labels(pg, tabclass):
+    """[(tab number, label)] of the tabs written in a page."""
+    return re.findall(r"data-glpi-ajax-content='[^']*" + tabclass + r"%24(\d)[^']*'[^>]*?aria-label='([^']*)'", pg, re.S)
+
+
+ZONE_TAB = {'connection': 1, 'work_items': 2, 'fields': 3, 'access': 4}
+
+
+def post_zone(pid, zone, data):
+    """What the form of a tab does: POST its zone (the CSRF token is the one of that tab's form)."""
+    s_, body = project_tab(a, pid, ZONE_TAB[zone])
+    return a.req(f'{P}/Config/Project', {'_glpi_csrf_token': form_token(body, f'{P}/Config/Project'), 'id': str(pid), '_zone': zone, **data})
+
+
+def setting(name):
+    return sql(f"select value from glpi_configs where context='plugin:azuredevops' and name='{name}'")
+
+
+print('== administrator: the configuration is a GLPI page with the tabs on the left, one per zone of settings')
+s, page, _ = a.req(f'{P}/Config')
+s_p, prof, _ = a.req('/front/profile.form.php?id=4')
+vertical = "class='d-flex card-tabs flex-column flex-md-row vertical'"
+check('same layout as GLPI\'s own administration pages (the profile page): vertical tabs on the left', s == 200 and vertical in page and vertical in prof and "id='tabspanel'" in page and 'flex-md-column' in page, str(s))
+labels = dict(tab_labels(page, 'ConfigTabs'))
+expected = [('Azure DevOps projects', 'Projets Azure DevOps'), ('Work item creation', "Création des éléments de travail"), ('When a work item is done on Azure DevOps', 'Quand un élément de travail est terminé sur Azure DevOps'), ('Advanced', 'Avancé'), ('Rights by profile', 'Droits par profil')]
+check('one tab per zone of settings: projects, creation, completion, advanced, rights', list(labels) == ['1', '2', '3', '4', '5'] and all(labels[str(i + 1)] in pair for i, pair in enumerate(expected)), str(labels))
+check('the old full page is gone: nothing but the tabs on the page itself', 'name="title_template"' not in page and 'name="profiles[]"' not in page)
+s1, c1 = config_tab(a, 1); s2, c2 = config_tab(a, 2); s3, c3 = config_tab(a, 3); s4, c4 = config_tab(a, 4); s5, c5 = config_tab(a, 5)
+check('every tab loads', (s1, s2, s3, s4, s5) == (200,) * 5 and all(len(c) > 200 for c in (c1, c2, c3, c4, c5)))
+check('projects tab: the projects, their edit page and the add button', 'Toto' in c1 and 'Tata' in c1 and f'{P}/Config/Project/{toto}' in c1 and f'{P}/Config/Project"' in c1, text(c1)[:200])
+check('projects tab: who can use each project is shown', 'ado_group1' in c1 and 'ado_group2' in c1)
+check('tokens never sent to the browser', 'pat-toto' not in c1 and 'pat-tata' not in c1)
+check('creation tab: its settings and nothing of the other zones', 'name="title_template"' in c2 and 'name="upload_attachments"' in c2 and 'name="close_followup"' not in c2 and 'name="api_base_url"' not in c2)
+check('completion tab: one single choice for the requester', all(f'name="requester_close_mode" value="{v}"' in c3 for v in ('none', 'followup', 'solve')) and 'name="close_followup"' in c3)
+check('advanced tab: the addresses', 'name="api_base_url"' in c4 and 'name="entra_authority"' in c4)
+check('rights tab: rights per profile', 'name="profiles[]"' in c5 and 'name="rights[6][]"' in c5)
+s_, _b, _h = a.req(f'{P}/Config', {'_tab': 'creation', 'title_template': 'x'})
+check('config POST without CSRF token rejected', s_ in (400, 403), str(s_))
+
+print('== administrator: each tab saves its own zone only')
+title0 = setting('title_template'); followup0 = setting('close_followup'); base0 = setting('api_base_url')
+s_, _b, h = a.req(f'{P}/Config', {'_glpi_csrf_token': form_token(c2, f'{P}/Config'), '_tab': 'creation', 'title_template': 'ZONE {id}', 'max_attachment_mb': '7', 'close_followup': '0', 'api_base_url': 'http://evil.example', 'unknown_setting': 'x'})
+check('creation tab: saved, and redirected to the page', s_ in (302, 303) and setting('title_template') == 'ZONE {id}' and setting('max_attachment_mb') == '7', str(s_))
+check('what belongs to the other tabs, or to no setting, is ignored', setting('close_followup') == followup0 and setting('api_base_url') == base0 and setting('unknown_setting') == '')
+check('the box left unticked counts as unticked, in this tab only', setting('include_people') == '0' and setting('close_followup') == followup0)
+s_, _b, _h = a.req(f'{P}/Config', {'_glpi_csrf_token': form_token(config_tab(a, 2)[1], f'{P}/Config'), '_tab': 'creation', 'title_template': 'NEVER', 'max_attachment_mb': 'abc'})
+s_, pg_, _ = a.req(f'{P}/Config')
+check('an invalid form is refused as a whole, with a message', setting('title_template') == 'ZONE {id}' and either(pg_, 'Invalid form data', 'Données de formulaire invalides'), text(pg_)[:150])
+s_, _b, _h = a.req(f'{P}/Config', {'_glpi_csrf_token': form_token(config_tab(a, 4)[1], f'{P}/Config'), '_tab': 'advanced', 'api_base_url': 'ftp://nope', 'entra_authority': 'https://login.microsoftonline.com'})
+s_, pg_, _ = a.req(f'{P}/Config')
+check('advanced tab: an address that is not http(s) is refused', setting('api_base_url') == base0 and either(pg_, 'must start with http', 'doit commencer par http'), text(pg_)[:150])
+s_, _b, _h = a.req(f'{P}/Config', {'_glpi_csrf_token': form_token(config_tab(a, 3)[1], f'{P}/Config'), '_tab': 'closure', 'close_followup': '1', 'requester_close_mode': 'bogus'})
+check('completion tab: an unknown choice for the requester refuses the form', setting('close_solve_ticket') in ('0', ''))
+s_, _b, _h = a.req(f'{P}/Config', {'_glpi_csrf_token': form_token(config_tab(a, 2)[1], f'{P}/Config'), '_tab': 'creation', 'title_template': title0, 'include_people': '1', 'upload_attachments': '1', 'max_attachment_mb': '10', 'creation_followup': '1', 'creation_followup_private': '1', 'notify_requester_text': ''})
+check('creation tab: back to its original values', setting('title_template') == title0 and setting('include_people') == '1')
+s_, _b, _h = a.req(f'{P}/Config', {'_glpi_csrf_token': form_token(c4, f'{P}/Config'), '_tab': 'nope', 'title_template': 'x'})
+check('an unknown tab saves nothing', setting('title_template') == title0)
+
+print('== administrator: the page of a project has one tab per zone too')
 s, page, _ = a.req(f'{P}/Config/Project/{toto}')
-check('project form renders', s == 200 and 'name="token"' in page and 'name="workitem_type"' in page, f'{s} {text(page)[:200]}')
-check('token not sent back, field optional when one is stored', 'pat-toto' not in page and not re.search(r'name="token"[^>]*required', page))
-check('work item type chosen from the types read at the last test', re.search(r'<option value="User Story" selected', page) is not None and 'value="Feature"' in page)
-check('the project form: the restriction of the types is an explicit option', 'name="restrict_types"' in page and 'name="offered_types[]"' in page and 'id="ado_offered"' in page)
-check('allowed groups are preselected', re.search(rf'<option value="{g1}" selected>ado_group1', page) is not None)
-check('access section', 'name="is_restricted"' in page and 'id="ado_groups"' in page and 'id="ado_users"' in page)
-check('delete disabled while tickets are linked', re.search(r'<button[^>]*disabled[^>]*>.*?trash', page, re.S) is not None)
+plabels = dict(tab_labels(page, 'ProjectTabs'))
+pexpected = [('Connection', 'Connexion'), ('Work items', 'Éléments de travail'), ('Fields and tags', 'Champs et tags'), ('Who can use this project', 'Qui peut utiliser ce projet')]
+check('a project page: GLPI layout, vertical tabs, four zones', s == 200 and vertical in page and list(plabels) == ['1', '2', '3', '4'] and all(plabels[str(i + 1)] in pair for i, pair in enumerate(pexpected)), str(plabels))
+pc1 = project_tab(a, toto, 1)[1]; pc2 = project_tab(a, toto, 2)[1]; pc3 = project_tab(a, toto, 3)[1]; pc4 = project_tab(a, toto, 4)[1]
+check('connection tab: name, organization, project, token', all(f'name="{n}"' in pc1 for n in ('name', 'organization', 'ado_project', 'token', 'is_active', 'auth_mode')) and 'name="workitem_type"' not in pc1, text(pc1)[:150])
+check('token not sent back, field optional when one is stored', 'pat-toto' not in pc1 and not re.search(r'name="token"[^>]*required', pc1))
+check('work items tab: the type chosen from the types read at the last test', 'name="workitem_type"' in pc2 and re.search(r'<option value="User Story" selected', pc2) is not None and 'value="Feature"' in pc2 and 'name="token"' not in pc2)
+check('work items tab: the restriction of the types is an explicit option', 'name="restrict_types"' in pc2 and 'name="offered_types[]"' in pc2 and 'id="ado_offered"' in pc2)
+check('fields tab: default tags, default fields', 'name="default_tags[]"' in pc3 and 'name="restrict_tags"' in pc3 and 'name="default_fields"' in pc3 and 'name="workitem_type"' not in pc3)
+check('access tab: allowed groups are preselected', re.search(rf'<option value="{g1}" selected>ado_group1', pc4) is not None and 'name="is_restricted"' in pc4 and 'id="ado_groups"' in pc4 and 'id="ado_users"' in pc4)
+check('connection tab: delete is disabled while tickets are linked', re.search(r'<button[^>]*disabled[^>]*>.*?trash', pc1, re.S) is not None)
+check('every tab has a way back to the configuration and its own form', all(f'{P}/Config"' in c and '<form' in c for c in (pc1, pc2, pc3, pc4)))
 
 s, page, _ = a.req(f'{P}/Config/Project')
-check('new project form: token required, type as free text', s == 200 and re.search(r'name="token"[^>]*required', page) is not None and re.search(r'<input[^>]*name="workitem_type"', page) is not None, str(s))
-ctok = form_token(page, f'{P}/Config/Project')
-check('csrf token in the form', bool(ctok))
+nlabels = dict(tab_labels(page, 'ProjectTabs'))
+check('a new project: only the connection tab (the other zones need a saved project)', s == 200 and list(nlabels) == ['1'], str(nlabels))
+nc1 = project_tab(a, 0, 1)[1]
+check('new project: token required', re.search(r'name="token"[^>]*required', nc1) is not None and 'name="name"' in nc1)
+check('new project: the other tabs give nothing, even asked directly', all('<form' not in project_tab(a, 0, n)[1] for n in (2, 3, 4)))
+check('csrf token in the form', bool(form_token(nc1, f'{P}/Config/Project')))
 
 print('== administrator: add a project with its token (save and test)')
 mock('/_mock/rules', {'project': 'Tata', 'type': 'Issue', 'fields': {'Microsoft.VSTS.Common.Priority': {'name': 'Priorité', 'allowed': ['1', '2', '3', '4']}}})
-before = sql("select count(*) from glpi_plugin_azuredevops_projects")
-s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': ctok, 'id': '0', 'name': 'WebProj', 'organization': 'https://dev.azure.com/acme/', 'ado_project': 'Tata',
-                'token': 'pat-tata', 'is_active': '1', 'is_restricted': '1', 'workitem_type': 'Issue', 'parent_types': 'Epic', 'followup_only_types': 'Epic',
-                'done_categories[]': ['Completed'], 'default_tags': 'glpi', 'groups[]': [str(g2)], '_test': '1'})
+s, _, h = post_zone(0, 'connection', {'name': 'WebProj', 'organization': 'https://dev.azure.com/acme/', 'ado_project': 'Tata', 'auth_mode': 'pat', 'token': 'pat-tata', 'is_active': '1', '_test': '1',
+                                      'workitem_type': 'Issue', 'is_restricted': '0'})
 check('save redirects to the project page', s in (302, 303) and re.search(rf'{P}/Config/Project/\d+', h.get('Location', '')) is not None, f'{s} {h.get("Location")}')
 new_id = int(re.search(r'/Config/Project/(\d+)', h.get('Location', '/0')).group(1))
-row = sql(f"select organization,ado_project,is_restricted,token from glpi_plugin_azuredevops_projects where id={new_id}").split('\t')
-check('project stored: organization normalised, token encrypted', row[0] == 'acme' and row[1] == 'Tata' and row[3] not in ('', 'pat-tata'), str(row))
-check('access stored (group 2)', sql(f"select groups_id from glpi_plugin_azuredevops_projects_groups where projects_id={new_id}") == str(g2))
 s, page, _ = a.req(f'{P}/Config/Project/{new_id}')
 check('connection test message shown', either(page, 'Connection successful', 'Connexion réussie') and 'Bot Tata' in page, text(page)[:300])
-check('types now offered as a list', re.search(r'<select id="ado_type"', page) is not None and 'value="Issue" selected' in page)
-check('token still hidden', 'pat-tata' not in page)
-check('the form has the default fields box', 'name="default_fields"' in page)
-check('required fields of the type listed with their allowed values and what is missing', 'Microsoft.VSTS.Common.Priority' in page and 'Priorité' in page and '1, 2, 3, 4' in page and either(page, 'Needs a value', 'Valeur à renseigner'), text(page)[:200])
-ptok = form_token(page, f'{P}/Config/Project')
-s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': ptok, 'id': str(new_id), 'name': 'WebProj', 'organization': 'acme', 'ado_project': 'Tata', 'token': '', 'is_active': '1', 'is_restricted': '1',
-                'workitem_type': 'Issue', 'parent_types': 'Epic', 'followup_only_types': 'Epic', 'done_categories[]': ['Completed'], 'default_tags': 'glpi', 'groups[]': [str(g2)],
-                'default_fields': 'Microsoft.VSTS.Common.Priority = {priority}'})
-s, page, _ = a.req(f'{P}/Config/Project/{new_id}')
-check('default fields saved and shown, the required field is now covered', 'Microsoft.VSTS.Common.Priority = {priority}' in page and either(page, 'Has a value', 'Valeur renseignée') and not either(page, 'Needs a value', 'Valeur à renseigner'))
+row = sql(f"select organization,ado_project,is_restricted,token,if(workitem_type='','-',workitem_type) from glpi_plugin_azuredevops_projects where id={new_id}").split('\t')
+check('project stored: organization normalised, token encrypted', row[0] == 'acme' and row[1] == 'Tata' and row[3] not in ('', 'pat-tata'), str(row))
+check('a new project is restricted whatever the connection form says, and ignores the fields of other zones', row[2] == '1' and row[4] == '-', str(row))
+check('so nobody can use it until users or groups are chosen', sql(f"select count(*) from glpi_plugin_azuredevops_projects_groups where projects_id={new_id}") == '0')
+s, _, _ = post_zone(new_id, 'work_items', {'workitem_type': 'Issue', 'parent_types[]': ['Epic'], 'followup_only_types[]': ['Epic'], 'done_categories[]': ['Completed']})
+s, _, _ = post_zone(new_id, 'access', {'is_restricted': '1', 'groups[]': [str(g2)]})
+s, _, _ = post_zone(new_id, 'fields', {'default_tags[]': ['glpi']})
+check('access stored (group 2)', sql(f"select groups_id from glpi_plugin_azuredevops_projects_groups where projects_id={new_id}") == str(g2))
+check('work items zone stored', sql(f"select concat(workitem_type,'|',parent_types,'|',followup_only_types) from glpi_plugin_azuredevops_projects where id={new_id}") == 'Issue|Epic|Epic')
+nc1 = project_tab(a, new_id, 1)[1]; nc2 = project_tab(a, new_id, 2)[1]; nc3 = project_tab(a, new_id, 3)[1]
+check('types now offered as a list', re.search(r'<select id="ado_type"', nc2) is not None and 'value="Issue" selected' in nc2)
+check('token still hidden', 'pat-tata' not in nc1)
+check('the form has the default fields box', 'name="default_fields"' in nc3)
+check('required fields of the type listed with their allowed values and what is missing', 'Microsoft.VSTS.Common.Priority' in nc3 and 'Priorité' in nc3 and '1, 2, 3, 4' in nc3 and either(nc3, 'Needs a value', 'Valeur à renseigner'), text(nc3)[:200])
+s, _, _ = post_zone(new_id, 'fields', {'default_tags[]': ['glpi'], 'default_fields': 'Microsoft.VSTS.Common.Priority = {priority}'})
+nc3 = project_tab(a, new_id, 3)[1]
+check('default fields saved and shown, the required field is now covered', 'Microsoft.VSTS.Common.Priority = {priority}' in nc3 and either(nc3, 'Has a value', 'Valeur renseignée') and not either(nc3, 'Needs a value', 'Valeur à renseigner'))
 # the creation form of the ticket offers the required fields
 s, pg, _ = tab(a, ticket_id, tok)
 m = re.search(r'id="ado_create_\d+"\s+data-config="([^"]*)"', pg)
@@ -134,59 +207,59 @@ s, pg, _ = a.req(f'/front/ticket.form.php?id={t7}')
 check('a forged field is refused with a message, nothing created', sql(f"select count(*) from glpi_plugin_azuredevops_links where tickets_id={t7}") == '0' and either(pg, 'cannot be set from the ticket', 'ne peut pas être défini depuis le ticket'), text(pg)[:200])
 sql(f"delete from glpi_plugin_azuredevops_links where projects_id={new_id}")
 # required fields: ask them in the ticket or not, and refresh without re-testing
-check('the required fields table has the process default and a box to ask each one in the ticket', 'name="ask_fields[Issue][]"' in page and 'name="listed_fields[Issue][]"' in page and either(page, 'Default in the process', 'Valeur par défaut du processus'), text(page)[:200])
-check('the refresh button is on the project page', f'{P}/Config/Project/{new_id}/Refresh' in page)
-common = {'id': str(new_id), 'name': 'WebProj', 'organization': 'acme', 'ado_project': 'Tata', 'token': '', 'is_active': '1', 'is_restricted': '1', 'workitem_type': 'Issue', 'parent_types': 'Epic', 'followup_only_types': 'Epic',
-          'done_categories[]': ['Completed'], 'default_tags': 'glpi', 'groups[]': [str(g2)], 'default_fields': 'Microsoft.VSTS.Common.Priority = {priority}'}
-s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': form_token(page, f'{P}/Config/Project'), **common, 'listed_fields[Issue][]': ['Microsoft.VSTS.Common.Priority']})
-s, page, _ = a.req(f'{P}/Config/Project/{new_id}')
-check('the field left unticked is no longer asked: shown as "not asked"', either(page, 'Not asked', 'Non demandé') and sql(f"select hidden_fields from glpi_plugin_azuredevops_projects where id={new_id}") == 'Issue: Microsoft.VSTS.Common.Priority', sql(f"select hidden_fields from glpi_plugin_azuredevops_projects where id={new_id}"))
+check('the required fields table has the process default and a box to ask each one in the ticket', 'name="ask_fields[Issue][]"' in nc3 and 'name="listed_fields[Issue][]"' in nc3 and either(nc3, 'Default in the process', 'Valeur par défaut du processus'), text(nc3)[:200])
+check('the refresh button is on the work items and the fields tabs', f'{P}/Config/Project/{new_id}/Refresh' in nc3 and f'{P}/Config/Project/{new_id}/Refresh' in nc2)
+fdata = {'default_tags[]': ['glpi'], 'default_fields': 'Microsoft.VSTS.Common.Priority = {priority}'}
+s, _, h = post_zone(new_id, 'fields', {**fdata, 'listed_fields[Issue][]': ['Microsoft.VSTS.Common.Priority']})
+nc3 = project_tab(a, new_id, 3)[1]
+check('the field left unticked is no longer asked: shown as "not asked"', either(nc3, 'Not asked', 'Non demandé') and sql(f"select hidden_fields from glpi_plugin_azuredevops_projects where id={new_id}") == 'Issue: Microsoft.VSTS.Common.Priority', sql(f"select hidden_fields from glpi_plugin_azuredevops_projects where id={new_id}"))
 s, pg, _ = tab(a, ticket_id, tok)
 m = re.search(r'id="ado_create_\d+"\s+data-config="([^"]*)"', pg)
 cfg2 = (json.loads(html.unescape(m.group(1))) if m else {}).get(str(new_id), {})
 check('and the ticket form does not ask it', (cfg2.get('fields') or {}).get('Issue') == [], str(cfg2.get('fields')))
-s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': form_token(page, f'{P}/Config/Project'), **common, 'listed_fields[Issue][]': ['Microsoft.VSTS.Common.Priority'], 'ask_fields[Issue][]': ['Microsoft.VSTS.Common.Priority']})
+s, _, h = post_zone(new_id, 'fields', {**fdata, 'listed_fields[Issue][]': ['Microsoft.VSTS.Common.Priority'], 'ask_fields[Issue][]': ['Microsoft.VSTS.Common.Priority']})
 check('ticking it again asks it again', sql(f"select ifnull(hidden_fields,'')='' from glpi_plugin_azuredevops_projects where id={new_id}") == '1')
 sql(f"update glpi_plugin_azuredevops_projects set types_cache=JSON_SET(types_cache, '$.fetched_at', '2000-01-01 00:00:00') where id={new_id}")
-s, page, _ = a.req(f'{P}/Config/Project/{new_id}')
-s, _, h = a.req(f'{P}/Config/Project/{new_id}/Refresh', {'_glpi_csrf_token': form_token(page, f'{P}/Config/Project/{new_id}/Refresh')})
+nc2 = project_tab(a, new_id, 2)[1]
+s, _, h = a.req(f'{P}/Config/Project/{new_id}/Refresh', {'_glpi_csrf_token': form_token(nc2, f'{P}/Config/Project/{new_id}/Refresh')})
 check('the refresh button reads the types again without saving anything', s in (302, 303) and sql(f"select JSON_VALUE(types_cache, '$.fetched_at') >= '2026-01-01' from glpi_plugin_azuredevops_projects where id={new_id}") == '1', str(s))
 s, page, _ = a.req(f'{P}/Config/Project/{new_id}')   # the message is shown by the first page displayed after the action
-check('and says so', either(page, 'Connection successful', 'Connexion réussie') and either(page, 'Last read', 'Dernière lecture'), text(page)[:200])
+check('and says so', either(page, 'Connection successful', 'Connexion réussie'), text(page)[:200])
+nc3 = project_tab(a, new_id, 3)[1]
+check('the date of the last reading is shown', either(nc3, 'Last read', 'Dernière lecture'))
 s, _, _ = a.req(f'{P}/Config/Project/{new_id}/Refresh', {'x': 'y'})
 check('the refresh without CSRF token is rejected', s in (400, 403), str(s))
-s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': form_token(page, f'{P}/Config/Project'), 'id': str(new_id), 'name': 'WebProj', 'organization': 'acme', 'ado_project': 'Tata', 'token': '', 'is_active': '1', 'is_restricted': '1',
-                'workitem_type': 'Issue', 'parent_types': 'Epic', 'followup_only_types': 'Epic', 'done_categories[]': ['Completed'], 'default_tags': 'glpi', 'groups[]': [str(g2)], 'default_fields': 'garbage'})
+s, _, h = post_zone(new_id, 'fields', {'default_tags[]': ['glpi'], 'default_fields': 'garbage'})
 s, page, _ = a.req(f'{P}/Config/Project/{new_id}')
-check('an invalid default field is refused with a message, nothing lost', ('Reference.Name' in page or 'garbage' in page) and 'Microsoft.VSTS.Common.Priority = {priority}' in page, text(page)[:200])
+nc3 = project_tab(a, new_id, 3)[1]
+check('an invalid default field is refused with a message, nothing lost', ('Reference.Name' in page or 'garbage' in page) and 'Microsoft.VSTS.Common.Priority = {priority}' in nc3, text(page)[:200])
+s, _, h = post_zone(new_id, 'work_items', {'workitem_type': 'Issue', 'name': 'HACKED', 'token': 'forged', 'is_restricted': '0'})
+check('a tab form cannot change the settings of another zone, even when forged', sql(f"select concat(name,'|',is_restricted) from glpi_plugin_azuredevops_projects where id={new_id}") == 'WebProj|1')
 mock('/_mock/rules', {'project': 'Tata', 'type': 'Issue', 'fields': {}})
 
-s, page, _ = a.req(f'{P}/Config/Project', {'name': 'x', 'id': str(new_id)})
+s, page, _ = a.req(f'{P}/Config/Project', {'name': 'x', 'id': str(new_id), '_zone': 'connection'})
 check('project POST without CSRF rejected', s in (400, 403), str(s))
 
 
 print('== administrator: a project that signs in as a Microsoft Entra application')
-s, page, _ = a.req(f'{P}/Config/Project')
-check('form offers both authentication modes', 'name="auth_mode" value="pat"' in page and 'name="auth_mode" value="entra"' in page and 'name="tenant_id"' in page and 'name="client_id"' in page and 'name="client_secret"' in page, str(s))
-check('the Entra set-up instructions are on the form', either(page, 'Organization settings (gear, bottom left)', 'Organization settings (roue dentée, en bas à gauche)'), text(page)[:200])
-ctok = form_token(page, f'{P}/Config/Project')
-s, _, h = a.req(f'{P}/Config/Project', {'_glpi_csrf_token': ctok, 'id': '0', 'name': 'WebEntra', 'organization': 'acme', 'ado_project': 'Tata', 'auth_mode': 'entra',
-                'tenant_id': 'tenant-1', 'client_id': 'app-tata', 'client_secret': 'secret-tata', 'is_active': '1', 'is_restricted': '1', 'workitem_type': 'Issue',
-                'parent_types': 'Epic', 'followup_only_types': 'Epic', 'done_categories[]': ['Completed'], 'default_tags': 'glpi', 'groups[]': [str(g2)], '_test': '1'})
+nc1 = project_tab(a, 0, 1)[1]
+check('form offers both authentication modes', 'name="auth_mode" value="pat"' in nc1 and 'name="auth_mode" value="entra"' in nc1 and 'name="tenant_id"' in nc1 and 'name="client_id"' in nc1 and 'name="client_secret"' in nc1)
+check('the Entra set-up instructions are on the form', either(nc1, 'Organization settings (gear, bottom left)', 'Organization settings (roue dentée, en bas à gauche)'), text(nc1)[:200])
+s, _, h = post_zone(0, 'connection', {'name': 'WebEntra', 'organization': 'acme', 'ado_project': 'Tata', 'auth_mode': 'entra', 'tenant_id': 'tenant-1', 'client_id': 'app-tata', 'client_secret': 'secret-tata', 'is_active': '1', '_test': '1'})
 check('Entra project saved without any personal token', s in (302, 303) and re.search(rf'{P}/Config/Project/\d+', h.get('Location', '')) is not None, f'{s} {h.get("Location")}')
 eid = int(re.search(r'/Config/Project/(\d+)', h.get('Location', '/0')).group(1))
 row = sql(f"select auth_mode,ifnull(token,''),client_secret,tenant_id,client_id from glpi_plugin_azuredevops_projects where id={eid}").split('\t')
 check('stored: mode, tenant and application ID in clear, secret encrypted, no PAT', row[0] == 'entra' and row[1] == '' and row[2] not in ('', 'secret-tata') and 'secret-tata' not in row[2] and row[3] == 'tenant-1' and row[4] == 'app-tata', str(row))
 s, page, _ = a.req(f'{P}/Config/Project/{eid}')
 check('connection test: signed in as the application', either(page, 'Connection successful', 'Connexion réussie') and 'App Tata' in page, text(page)[:300])
-check('the form shows the Entra mode, the IDs, and never the secret', 'name="auth_mode" value="entra" checked' in page and 'value="tenant-1"' in page and 'value="app-tata"' in page and 'secret-tata' not in page)
-check('the secret field is optional once one is stored', not re.search(r'name="client_secret"[^>]*required', page))
-check('the access token obtained from Entra is not in the page', 'eyJ.' not in page)
-s, page, _ = a.req(f'{P}/Config')
-check('project list shows the authentication mode', either(page, 'Entra application', 'Application Entra') and either(page, 'Personal token', 'Jeton personnel'))
-check('advanced settings: Microsoft Entra sign-in address', 'name="entra_authority"' in page)
-dt = form_token(page, f'{P}/Config/Project/{eid}/Delete') or form_token(a.req(f'{P}/Config/Project/{eid}')[1], f'/Config/Project/{eid}/Delete')
-s, _, _ = a.req(f'{P}/Config/Project/{eid}/Delete', {'_glpi_csrf_token': dt})
+ec1 = project_tab(a, eid, 1)[1]
+check('the form shows the Entra mode, the IDs, and never the secret', 'name="auth_mode" value="entra" checked' in ec1 and 'value="tenant-1"' in ec1 and 'value="app-tata"' in ec1 and 'secret-tata' not in ec1)
+check('the secret field is optional once one is stored', not re.search(r'name="client_secret"[^>]*required', ec1))
+check('the access token obtained from Entra is not in the page', 'eyJ.' not in ec1 and 'eyJ.' not in page)
+c1 = config_tab(a, 1)[1]
+check('project list shows the authentication mode', either(c1, 'Entra application', 'Application Entra') and either(c1, 'Personal token', 'Jeton personnel'))
+check('advanced settings: Microsoft Entra sign-in address', 'name="entra_authority"' in config_tab(a, 4)[1])
+s, _, _ = a.req(f'{P}/Config/Project/{eid}/Delete', {'_glpi_csrf_token': form_token(ec1, f'{P}/Config/Project/{eid}/Delete')})
 check('Entra project deleted', s in (302, 303) and sql(f"select count(*) from glpi_plugin_azuredevops_projects where id={eid}") == '0', str(s))
 
 print('== administrator: access search and work item search')
@@ -249,8 +322,8 @@ s, pg, _ = tab(a, t10, tok)
 s, _, h = a.req(f'{P}/Ticket/{t10}/WorkItem', {'_glpi_csrf_token': form_token(pg, f'{P}/Ticket/{t10}/WorkItem'), 'project_id': str(toto), 'followup': 'none', 'notify_requester': '0', 'tags[]': ['Urgent', 'Backend']})
 w10 = sql(f"select workitem_id from glpi_plugin_azuredevops_links where tickets_id={t10}")
 check('tags chosen in the form are sent (with the default ones)', w10 != '' and set(t.strip() for t in mock('/_mock/dump')['items'][w10]['fields']['System.Tags'].split(';')) == {'glpi', 'Urgent', 'Backend'}, w10)
-s, page, _ = a.req(f'{P}/Config/Project/{toto}')
-check('the project form: default tags as a list and the option for accounts that cannot create tags', 'name="default_tags[]"' in page and 'name="restrict_tags"' in page and re.search(r'<option value="glpi" selected', page) is not None)
+page = project_tab(a, toto, 3)[1]
+check('the fields tab: default tags as a list and the option for accounts that cannot create tags', 'name="default_tags[]"' in page and 'name="restrict_tags"' in page and re.search(r'<option value="glpi" selected', page) is not None)
 
 print('== administrator: create, link and unlink from the ticket tab')
 t2 = new_ticket()
@@ -333,7 +406,7 @@ m = re.search(rf'action="[^"]*/Link/(\d+)/Unlink"[^>]*>\s*<input type="hidden" n
 check('unlink button present', m is not None)
 s, _, _ = a.req(f'{P}/Link/{m.group(1)}/Unlink', {'_glpi_csrf_token': m.group(2)})
 check('unlink removes the link only (nothing deleted on Azure DevOps)', s in (302, 303) and sql(f"select count(*) from glpi_plugin_azuredevops_links where id={m.group(1)}") == '0')
-s, page, _ = a.req(f'{P}/Config/Project/{new_id}')
+page = project_tab(a, new_id, 1)[1]
 dt = form_token(page, f'/Config/Project/{new_id}/Delete')
 s, _, _ = a.req(f'{P}/Config/Project/{new_id}/Delete', {'_glpi_csrf_token': dt})
 check('unused project deleted from its page', s in (302, 303) and sql(f"select count(*) from glpi_plugin_azuredevops_projects where id={new_id}") == '0', str(s))

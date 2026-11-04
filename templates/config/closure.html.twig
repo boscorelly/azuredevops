@@ -1,0 +1,44 @@
+<form method="post" action="{{ form_url }}" class="m-3">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="_tab" value="closure">
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('When a work item is done on Azure DevOps', 'azuredevops') }}</h3></div>
+        <div class="card-body">
+            <p class="text-muted">{{ __('A work item is "done" when its state belongs to a category chosen in its project (Completed by default). Epics and Features (the "followup only" types of the project) only add a private followup. For the other work items, the actions concerning the requester wait until every work item of the ticket is done.', 'azuredevops') }}</p>
+            <h4 class="mb-2">{{ __('For technicians', 'azuredevops') }}</h4>
+            <label class="form-check"><input class="form-check-input" type="checkbox" name="close_followup" value="1" {{ settings.close_followup == '1' ? 'checked' }}><span class="form-check-label">{{ __('Add a followup with the Azure DevOps details (state, who, when)', 'azuredevops') }}</span></label>
+            <label class="form-check ms-4 mb-3"><input class="form-check-input" type="checkbox" name="close_followup_private" value="1" {{ settings.close_followup_private == '1' ? 'checked' }}><span class="form-check-label">{{ __('Private followup', 'azuredevops') }}</span></label>
+
+            <h4 class="mb-2">{{ __('For the requester', 'azuredevops') }}</h4>
+            <p class="text-muted">{{ __('Requesters, who are often not technicians, never see the Azure DevOps tab. These neutral public messages tell them that their request was forwarded and completed, without any Azure DevOps detail (project, developer, link). GLPI notifications apply to public followups.', 'azuredevops') }}</p>
+            <label class="form-check"><input class="form-check-input" type="radio" name="requester_close_mode" value="none" {{ close_mode == 'none' ? 'checked' }}><span class="form-check-label">{{ __('Nothing', 'azuredevops') }}</span></label>
+            <label class="form-check"><input class="form-check-input" type="radio" name="requester_close_mode" value="followup" {{ close_mode == 'followup' ? 'checked' }}><span class="form-check-label">{{ __('A public followup with the message below', 'azuredevops') }}</span></label>
+            <label class="form-check"><input class="form-check-input" type="radio" name="requester_close_mode" value="solve" {{ close_mode == 'solve' ? 'checked' }}><span class="form-check-label">{{ __('The ticket is solved, with the message below as the solution (notifications and automatic actions apply)', 'azuredevops') }}</span></label>
+            <div class="mt-2">
+                <label class="form-label">{{ __('Message to the requester', 'azuredevops') }}</label>
+                <textarea name="notify_requester_close_text" class="form-control" rows="2" placeholder="{{ default_notice_close }}">{{ settings.notify_requester_close_text }}</textarea>
+                <div class="form-text">{{ __('Plain text. Empty = default message.', 'azuredevops') }}</div>
+            </div>
+            <div class="mt-2">
+                <label class="form-label">{{ __('Solution type (when the ticket is solved)', 'azuredevops') }}</label>
+                <select name="solutiontypes_id" class="form-select">
+                    <option value="0">—</option>
+                    {% for id, name in solution_types %}<option value="{{ id }}" {{ settings.solutiontypes_id == id ? 'selected' }}>{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+            <details class="mt-2" {{ settings.solution_template ? 'open' }}>
+                <summary class="text-muted">{{ __('Advanced: custom solution text', 'azuredevops') }}</summary>
+                <textarea name="solution_template" class="form-control mt-2" rows="3">{{ settings.solution_template }}</textarea>
+                <div class="form-text">{{ __('Optional. Replaces the message above as the text of the solution (HTML allowed). Placeholders: {workitem}, {workitem_url}, {closed_by}, {closed_at}, {ticket_id}. They show Azure DevOps details to the requester.', 'azuredevops') }}</div>
+            </details>
+
+            <h4 class="mt-4 mb-2">{{ __('Author', 'azuredevops') }}</h4>
+            <label class="form-label">{{ __('Author of the automatic followups and solutions', 'azuredevops') }}</label>
+            <select name="actor_users_id" class="form-select">
+                <option value="0">{{ __('The user who created the work item', 'azuredevops') }}</option>
+                {% for id, name in users %}<option value="{{ id }}" {{ settings.actor_users_id == id ? 'selected' }}>{{ name }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
+</form>

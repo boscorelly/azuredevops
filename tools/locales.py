@@ -20,7 +20,7 @@ def unescape_php(s, quote):
 
 
 def extract():
-    files = glob.glob(f'{ROOT}/src/**/*.php', recursive=True) + glob.glob(f'{ROOT}/templates/*.twig') + [f'{ROOT}/setup.php', f'{ROOT}/hook.php']
+    files = glob.glob(f'{ROOT}/src/**/*.php', recursive=True) + glob.glob(f'{ROOT}/templates/**/*.twig', recursive=True) + [f'{ROOT}/setup.php', f'{ROOT}/hook.php']
     found = {}  # (msgid, plural) -> first file, in discovery order
     simple = re.compile(r"""__\(\s*(['"])((?:\\.|(?!\1).)*)\1\s*,\s*'%s'\s*\)""" % DOMAIN)
     plural = re.compile(r"""_n\(\s*'((?:\\.|[^'])*)'\s*,\s*'((?:\\.|[^'])*)'\s*,[^;]*?'%s'""" % DOMAIN)

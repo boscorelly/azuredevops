@@ -1,0 +1,28 @@
+<form method="post" action="{{ form_url }}" class="m-3">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="_tab" value="creation">
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Work item creation', 'azuredevops') }}</h3></div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">{{ __('Work item title', 'azuredevops') }}</label>
+                <input type="text" name="title_template" class="form-control" value="{{ settings.title_template }}">
+                <div class="form-text">{{ __('Placeholders: {id} (ticket number) and {title}.', 'azuredevops') }}</div>
+            </div>
+            <label class="form-check"><input class="form-check-input" type="checkbox" name="include_people" value="1" {{ settings.include_people == '1' ? 'checked' }}><span class="form-check-label">{{ __('Mention requesters and assignees in the work item', 'azuredevops') }}</span></label>
+            <label class="form-check"><input class="form-check-input" type="checkbox" name="creation_followup" value="1" {{ settings.creation_followup == '1' ? 'checked' }}><span class="form-check-label">{{ __('Add a followup to the ticket when a work item is created or linked', 'azuredevops') }}</span></label>
+            <label class="form-check ms-4"><input class="form-check-input" type="checkbox" name="creation_followup_private" value="1" {{ settings.creation_followup_private == '1' ? 'checked' }}><span class="form-check-label">{{ __('Private followup', 'azuredevops') }}</span></label>
+            <label class="form-check mt-2"><input class="form-check-input" type="checkbox" name="notify_requester" value="1" {{ settings.notify_requester == '1' ? 'checked' }}><span class="form-check-label">{{ __('When a work item is created, add a public followup (the technician can change this for each work item)', 'azuredevops') }}</span></label>
+            <div class="ms-4 mb-2">
+                <textarea name="notify_requester_text" class="form-control" rows="2" aria-label="{{ __('Message to the requester', 'azuredevops') }}" placeholder="{{ default_notice_creation }}">{{ settings.notify_requester_text }}</textarea>
+                <div class="form-text">{{ __('Message to the requester', 'azuredevops') }} – {{ __('Plain text. Empty = default message.', 'azuredevops') }}</div>
+            </div>
+            <label class="form-check"><input class="form-check-input" type="checkbox" name="upload_attachments" value="1" {{ settings.upload_attachments == '1' ? 'checked' }}><span class="form-check-label">{{ __('Copy the ticket attachments and images to Azure DevOps', 'azuredevops') }}</span></label>
+            <div class="mt-2" style="max-width: 16rem">
+                <label class="form-label">{{ __('Maximum attachment size (MB)', 'azuredevops') }}</label>
+                <input type="number" min="1" name="max_attachment_mb" class="form-control" value="{{ settings.max_attachment_mb }}">
+            </div>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
+</form>

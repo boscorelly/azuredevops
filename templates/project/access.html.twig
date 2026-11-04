@@ -1,0 +1,50 @@
+<div class="m-3">
+<p><a href="{{ back_url }}"><i class="ti ti-arrow-left"></i> {{ __('Back to the configuration', 'azuredevops') }}</a></p>
+{% if project.last_error %}
+    <div class="alert alert-danger">{{ project.last_error }}</div>
+{% endif %}
+<form method="post" action="{{ form_url }}">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="id" value="{{ project.id }}">
+    <input type="hidden" name="_zone" value="access">
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Who can use this project', 'azuredevops') }}</h3></div>
+        <div class="card-body">
+            <label class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="is_restricted" value="1" {{ project.is_restricted ? 'checked' }}>
+                <span class="form-check-label">{{ __('Restrict to the users and groups below', 'azuredevops') }}</span>
+            </label>
+            <div class="form-text mb-3">{{ __('Unchecked: every technician who has the "create" right of the plugin can use this project. Checked: only the members of the groups and the users listed here (a technician in several groups gets all their projects). With nobody listed, nobody can use the project.', 'azuredevops') }}</div>
+
+            <div class="mb-3">
+                <label class="form-label" for="ado_groups">{{ __('Groups', 'azuredevops') }}</label>
+                <select id="ado_groups" name="groups[]" class="form-select" multiple style="width:100%">
+                    {% for id, name in access_groups %}<option value="{{ id }}" selected>{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="ado_users">{{ __('Users', 'azuredevops') }}</label>
+                <select id="ado_users" name="users[]" class="form-select" multiple style="width:100%">
+                    {% for id, name in access_users %}<option value="{{ id }}" selected>{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
+</form>
+
+<script>
+    $(function () {
+        var search = function (url, placeholder) {
+            return {
+                width: '100%', placeholder: placeholder, closeOnSelect: false,
+                ajax: {url: url, dataType: 'json', delay: 300,
+                    data: function (params) { return {term: params.term || '', page: params.page || 1}; }}
+            };
+        };
+        $('#ado_groups').select2(search({{ search_groups_url|json_encode|raw }}, {{ __('Search a group…', 'azuredevops')|json_encode|raw }}));
+        $('#ado_users').select2(search({{ search_users_url|json_encode|raw }}, {{ __('Search a user…', 'azuredevops')|json_encode|raw }}));
+    });
+</script>
+</div>

@@ -88,6 +88,30 @@ msgstr "Azure DevOps n'a pas renvoyé les tags."
 msgid "Azure DevOps did not return the work item."
 msgstr "Azure DevOps n'a pas renvoyé l'élément de travail."
 
+#: src/ConfigPage.php
+msgid "Azure DevOps"
+msgstr "Azure DevOps"
+
+#: src/ConfigTabs.php
+msgid "Azure DevOps projects"
+msgstr "Projets Azure DevOps"
+
+#: src/ConfigTabs.php
+msgid "Work item creation"
+msgstr "Création des éléments de travail"
+
+#: src/ConfigTabs.php
+msgid "When a work item is done on Azure DevOps"
+msgstr "Quand un élément de travail est terminé sur Azure DevOps"
+
+#: src/ConfigTabs.php
+msgid "Advanced"
+msgstr "Avancé"
+
+#: src/ConfigTabs.php
+msgid "Rights by profile"
+msgstr "Droits par profil"
+
 #: src/Controller/ConfigController.php
 msgid "The base URL must start with http:// or https://"
 msgstr "L'URL de base doit commencer par http:// ou https://"
@@ -99,6 +123,10 @@ msgstr "Paramètres enregistrés."
 #: src/Controller/ConfigController.php
 msgid "Rights updated."
 msgstr "Droits mis à jour."
+
+#: src/Controller/ConfigController.php
+msgid "New Azure DevOps project"
+msgstr "Nouveau projet Azure DevOps"
 
 #: src/Controller/ConfigController.php
 msgid "Project saved."
@@ -115,6 +143,10 @@ msgstr "Connexion réussie : projet « %1$s »%2$s. %3$d types d'éléments de t
 #: src/Controller/ConfigController.php
 msgid ", authenticated as %s"
 msgstr ", authentifié en tant que %s"
+
+#: src/Controller/ConfigController.php
+msgid "Invalid form data. Nothing was saved."
+msgstr "Données de formulaire invalides. Rien n'a été enregistré."
 
 #: src/Controller/WorkItemController.php
 msgid "Azure DevOps work item created: %s"
@@ -225,10 +257,6 @@ msgid "Attachment not copied (%1$s): %2$s"
 msgstr "Pièce jointe non copiée (%1$s) : %2$s"
 
 #: src/Link.php
-msgid "Azure DevOps"
-msgstr "Azure DevOps"
-
-#: src/Link.php
 msgid "Create or link a work item"
 msgstr "Créer ou lier un élément de travail"
 
@@ -325,6 +353,10 @@ msgid "Project not found."
 msgstr "Projet introuvable."
 
 #: src/Project.php
+msgid "Save the connection of the project first."
+msgstr "Enregistrez d'abord la connexion du projet."
+
+#: src/Project.php
 msgid "The project needs a name."
 msgstr "Le projet doit avoir un nom."
 
@@ -366,6 +398,22 @@ msgid_plural "Azure DevOps projects"
 msgstr[0] "Projet Azure DevOps"
 msgstr[1] "Projets Azure DevOps"
 
+#: src/ProjectTabs.php
+msgid "Connection"
+msgstr "Connexion"
+
+#: src/ProjectTabs.php
+msgid "Work items"
+msgstr "Éléments de travail"
+
+#: src/ProjectTabs.php
+msgid "Fields and tags"
+msgstr "Champs et tags"
+
+#: src/ProjectTabs.php
+msgid "Who can use this project"
+msgstr "Qui peut utiliser ce projet"
+
 #: src/RequesterNotice.php
 msgid "Your request has been taken into account by the technical team and forwarded to the people in charge of the development. You will be informed of the outcome."
 msgstr "Votre demande a été prise en compte par l'équipe technique et transmise aux personnes en charge du développement. Vous serez informé de son aboutissement."
@@ -406,465 +454,429 @@ msgstr "L'élément de travail Azure DevOps %1$s a été déplacé vers le proje
 msgid "The Azure DevOps work item %s was removed from the backlog. It is not followed anymore: the ticket is left unchanged."
 msgstr "L'élément de travail Azure DevOps %s a été retiré du backlog. Il n'est plus suivi : le ticket est laissé inchangé."
 
-#: templates/config.html.twig
-msgid "Azure DevOps projects"
-msgstr "Projets Azure DevOps"
-
-#: templates/config.html.twig
-msgid "Add a project"
-msgstr "Ajouter un projet"
-
-#: templates/config.html.twig
-msgid "No project is configured yet. Each project has its own access token and its own list of allowed users and groups."
-msgstr "Aucun projet n'est encore configuré. Chaque projet a son propre jeton d'accès et sa propre liste d'utilisateurs et de groupes autorisés."
-
-#: templates/config.html.twig
-msgid "Name"
-msgstr "Nom"
-
-#: templates/config.html.twig
-msgid "Organization / project"
-msgstr "Organisation / projet"
-
-#: templates/config.html.twig
-msgid "Work item type"
-msgstr "Type d'élément de travail"
-
-#: templates/config.html.twig
-msgid "Authentication"
-msgstr "Authentification"
-
-#: templates/config.html.twig
-msgid "Who can use it"
-msgstr "Qui peut l'utiliser"
-
-#: templates/config.html.twig
-msgid "Entra application"
-msgstr "Application Entra"
-
-#: templates/config.html.twig
-msgid "Personal token"
-msgstr "Jeton personnel"
-
-#: templates/config.html.twig
-msgid "Every technician with the \"create\" right"
-msgstr "Tout technicien ayant le droit « créer »"
-
-#: templates/config.html.twig
-msgid "Nobody yet"
-msgstr "Personne pour l'instant"
-
-#: templates/config.html.twig
-msgid "Inactive"
-msgstr "Inactif"
-
-#: templates/config.html.twig
-msgid "Error"
-msgstr "Erreur"
-
-#: templates/config.html.twig
-msgid "Active"
-msgstr "Actif"
-
-#: templates/config.html.twig
-msgid "Work item creation"
-msgstr "Création des éléments de travail"
-
-#: templates/config.html.twig
-msgid "Work item title"
-msgstr "Titre de l'élément de travail"
-
-#: templates/config.html.twig
-msgid "Placeholders: {id} (ticket number) and {title}."
-msgstr "Variables : {id} (numéro du ticket) et {title}."
-
-#: templates/config.html.twig
-msgid "Mention requesters and assignees in the work item"
-msgstr "Mentionner les demandeurs et les attribués dans l'élément de travail"
-
-#: templates/config.html.twig
-msgid "Add a followup to the ticket when a work item is created or linked"
-msgstr "Ajouter un suivi au ticket quand un élément de travail est créé ou lié"
-
-#: templates/config.html.twig
-msgid "Private followup"
-msgstr "Suivi privé"
-
-#: templates/config.html.twig
-msgid "When a work item is created, add a public followup (the technician can change this for each work item)"
-msgstr "Quand un élément de travail est créé, ajouter un suivi public (le technicien peut le modifier pour chaque élément)"
-
-#: templates/config.html.twig
-msgid "Message to the requester"
-msgstr "Message au demandeur"
-
-#: templates/config.html.twig
-msgid "Plain text. Empty = default message."
-msgstr "Texte brut. Vide = message par défaut."
-
-#: templates/config.html.twig
-msgid "Copy the ticket attachments and images to Azure DevOps"
-msgstr "Copier les pièces jointes et les images du ticket dans Azure DevOps"
-
-#: templates/config.html.twig
-msgid "Maximum attachment size (MB)"
-msgstr "Taille maximale d'une pièce jointe (Mo)"
-
-#: templates/config.html.twig
-msgid "When a work item is done on Azure DevOps"
-msgstr "Quand un élément de travail est terminé sur Azure DevOps"
-
-#: templates/config.html.twig
-msgid "A work item is \"done\" when its state belongs to a category chosen in its project (Completed by default). Epics and Features (the \"followup only\" types of the project) only add a private followup. For the other work items, the actions concerning the requester wait until every work item of the ticket is done."
-msgstr "Un élément de travail est « terminé » quand son état appartient à une catégorie choisie dans son projet (Completed par défaut). Les Epics et les Features (les types « suivi uniquement » du projet) ajoutent seulement un suivi privé. Pour les autres éléments, les actions concernant le demandeur attendent que tous les éléments du ticket soient terminés."
-
-#: templates/config.html.twig
-msgid "For technicians"
-msgstr "Pour les techniciens"
-
-#: templates/config.html.twig
-msgid "Add a followup with the Azure DevOps details (state, who, when)"
-msgstr "Ajouter un suivi avec les détails Azure DevOps (état, qui, quand)"
-
-#: templates/config.html.twig
-msgid "For the requester"
-msgstr "Pour le demandeur"
-
-#: templates/config.html.twig
-msgid "Requesters, who are often not technicians, never see the Azure DevOps tab. These neutral public messages tell them that their request was forwarded and completed, without any Azure DevOps detail (project, developer, link). GLPI notifications apply to public followups."
-msgstr "Les demandeurs, qui ne sont souvent pas des techniciens, ne voient jamais l'onglet Azure DevOps. Ces messages publics neutres leur indiquent que leur demande a été transmise puis réalisée, sans aucun détail Azure DevOps (projet, développeur, lien). Les notifications GLPI s'appliquent aux suivis publics."
-
-#: templates/config.html.twig
-msgid "Nothing"
-msgstr "Rien"
-
-#: templates/config.html.twig
-msgid "A public followup with the message below"
-msgstr "Un suivi public avec le message ci-dessous"
-
-#: templates/config.html.twig
-msgid "The ticket is solved, with the message below as the solution (notifications and automatic actions apply)"
-msgstr "Le ticket est résolu, avec le message ci-dessous comme solution (les notifications et les actions automatiques s'appliquent)"
-
-#: templates/config.html.twig
-msgid "Solution type (when the ticket is solved)"
-msgstr "Type de solution (quand le ticket est résolu)"
-
-#: templates/config.html.twig
-msgid "Advanced: custom solution text"
-msgstr "Avancé : texte de solution personnalisé"
-
-#: templates/config.html.twig
-msgid "Optional. Replaces the message above as the text of the solution (HTML allowed). Placeholders: {workitem}, {workitem_url}, {closed_by}, {closed_at}, {ticket_id}. They show Azure DevOps details to the requester."
-msgstr "Facultatif. Remplace le message ci-dessus comme texte de la solution (HTML autorisé). Variables : {workitem}, {workitem_url}, {closed_by}, {closed_at}, {ticket_id}. Elles montrent des détails Azure DevOps au demandeur."
-
-#: templates/config.html.twig
-msgid "Author"
-msgstr "Auteur"
-
-#: templates/config.html.twig
-msgid "Author of the automatic followups and solutions"
-msgstr "Auteur des suivis et solutions automatiques"
-
-#: templates/config.html.twig
-msgid "The user who created the work item"
-msgstr "L'utilisateur qui a créé l'élément de travail"
-
-#: templates/config.html.twig
-msgid "Advanced"
-msgstr "Avancé"
-
-#: templates/config.html.twig
+#: templates/config/advanced.html.twig
 msgid "Azure DevOps base URL"
 msgstr "URL de base d'Azure DevOps"
 
-#: templates/config.html.twig
+#: templates/config/advanced.html.twig
 msgid "Leave https://dev.azure.com for Azure DevOps Services."
 msgstr "Laissez https://dev.azure.com pour Azure DevOps Services."
 
-#: templates/config.html.twig
+#: templates/config/advanced.html.twig
 msgid "Microsoft Entra sign-in address"
 msgstr "Adresse de connexion Microsoft Entra"
 
-#: templates/config.html.twig
+#: templates/config/advanced.html.twig
 msgid "Where the Entra applications of the projects sign in. Leave https://login.microsoftonline.com except for a sovereign cloud."
 msgstr "Où les applications Entra des projets se connectent. Laissez https://login.microsoftonline.com sauf pour un cloud souverain."
 
-#: templates/config.html.twig
-msgid "Rights by profile"
-msgstr "Droits par profil"
+#: templates/config/closure.html.twig
+msgid "A work item is \"done\" when its state belongs to a category chosen in its project (Completed by default). Epics and Features (the \"followup only\" types of the project) only add a private followup. For the other work items, the actions concerning the requester wait until every work item of the ticket is done."
+msgstr "Un élément de travail est « terminé » quand son état appartient à une catégorie choisie dans son projet (Completed par défaut). Les Epics et les Features (les types « suivi uniquement » du projet) ajoutent seulement un suivi privé. Pour les autres éléments, les actions concernant le demandeur attendent que tous les éléments du ticket soient terminés."
 
-#: templates/config.html.twig
+#: templates/config/closure.html.twig
+msgid "For technicians"
+msgstr "Pour les techniciens"
+
+#: templates/config/closure.html.twig
+msgid "Add a followup with the Azure DevOps details (state, who, when)"
+msgstr "Ajouter un suivi avec les détails Azure DevOps (état, qui, quand)"
+
+#: templates/config/closure.html.twig
+msgid "Private followup"
+msgstr "Suivi privé"
+
+#: templates/config/closure.html.twig
+msgid "For the requester"
+msgstr "Pour le demandeur"
+
+#: templates/config/closure.html.twig
+msgid "Requesters, who are often not technicians, never see the Azure DevOps tab. These neutral public messages tell them that their request was forwarded and completed, without any Azure DevOps detail (project, developer, link). GLPI notifications apply to public followups."
+msgstr "Les demandeurs, qui ne sont souvent pas des techniciens, ne voient jamais l'onglet Azure DevOps. Ces messages publics neutres leur indiquent que leur demande a été transmise puis réalisée, sans aucun détail Azure DevOps (projet, développeur, lien). Les notifications GLPI s'appliquent aux suivis publics."
+
+#: templates/config/closure.html.twig
+msgid "Nothing"
+msgstr "Rien"
+
+#: templates/config/closure.html.twig
+msgid "A public followup with the message below"
+msgstr "Un suivi public avec le message ci-dessous"
+
+#: templates/config/closure.html.twig
+msgid "The ticket is solved, with the message below as the solution (notifications and automatic actions apply)"
+msgstr "Le ticket est résolu, avec le message ci-dessous comme solution (les notifications et les actions automatiques s'appliquent)"
+
+#: templates/config/closure.html.twig
+msgid "Message to the requester"
+msgstr "Message au demandeur"
+
+#: templates/config/closure.html.twig
+msgid "Plain text. Empty = default message."
+msgstr "Texte brut. Vide = message par défaut."
+
+#: templates/config/closure.html.twig
+msgid "Solution type (when the ticket is solved)"
+msgstr "Type de solution (quand le ticket est résolu)"
+
+#: templates/config/closure.html.twig
+msgid "Advanced: custom solution text"
+msgstr "Avancé : texte de solution personnalisé"
+
+#: templates/config/closure.html.twig
+msgid "Optional. Replaces the message above as the text of the solution (HTML allowed). Placeholders: {workitem}, {workitem_url}, {closed_by}, {closed_at}, {ticket_id}. They show Azure DevOps details to the requester."
+msgstr "Facultatif. Remplace le message ci-dessus comme texte de la solution (HTML autorisé). Variables : {workitem}, {workitem_url}, {closed_by}, {closed_at}, {ticket_id}. Elles montrent des détails Azure DevOps au demandeur."
+
+#: templates/config/closure.html.twig
+msgid "Author"
+msgstr "Auteur"
+
+#: templates/config/closure.html.twig
+msgid "Author of the automatic followups and solutions"
+msgstr "Auteur des suivis et solutions automatiques"
+
+#: templates/config/closure.html.twig
+msgid "The user who created the work item"
+msgstr "L'utilisateur qui a créé l'élément de travail"
+
+#: templates/config/creation.html.twig
+msgid "Work item title"
+msgstr "Titre de l'élément de travail"
+
+#: templates/config/creation.html.twig
+msgid "Placeholders: {id} (ticket number) and {title}."
+msgstr "Variables : {id} (numéro du ticket) et {title}."
+
+#: templates/config/creation.html.twig
+msgid "Mention requesters and assignees in the work item"
+msgstr "Mentionner les demandeurs et les attribués dans l'élément de travail"
+
+#: templates/config/creation.html.twig
+msgid "Add a followup to the ticket when a work item is created or linked"
+msgstr "Ajouter un suivi au ticket quand un élément de travail est créé ou lié"
+
+#: templates/config/creation.html.twig
+msgid "When a work item is created, add a public followup (the technician can change this for each work item)"
+msgstr "Quand un élément de travail est créé, ajouter un suivi public (le technicien peut le modifier pour chaque élément)"
+
+#: templates/config/creation.html.twig
+msgid "Copy the ticket attachments and images to Azure DevOps"
+msgstr "Copier les pièces jointes et les images du ticket dans Azure DevOps"
+
+#: templates/config/creation.html.twig
+msgid "Maximum attachment size (MB)"
+msgstr "Taille maximale d'une pièce jointe (Mo)"
+
+#: templates/config/projects.html.twig
+msgid "Add a project"
+msgstr "Ajouter un projet"
+
+#: templates/config/projects.html.twig
+msgid "No project is configured yet. Each project has its own access token and its own list of allowed users and groups."
+msgstr "Aucun projet n'est encore configuré. Chaque projet a son propre jeton d'accès et sa propre liste d'utilisateurs et de groupes autorisés."
+
+#: templates/config/projects.html.twig
+msgid "Name"
+msgstr "Nom"
+
+#: templates/config/projects.html.twig
+msgid "Organization / project"
+msgstr "Organisation / projet"
+
+#: templates/config/projects.html.twig
+msgid "Work item type"
+msgstr "Type d'élément de travail"
+
+#: templates/config/projects.html.twig
+msgid "Authentication"
+msgstr "Authentification"
+
+#: templates/config/projects.html.twig
+msgid "Who can use it"
+msgstr "Qui peut l'utiliser"
+
+#: templates/config/projects.html.twig
+msgid "Entra application"
+msgstr "Application Entra"
+
+#: templates/config/projects.html.twig
+msgid "Personal token"
+msgstr "Jeton personnel"
+
+#: templates/config/projects.html.twig
+msgid "Every technician with the \"create\" right"
+msgstr "Tout technicien ayant le droit « créer »"
+
+#: templates/config/projects.html.twig
+msgid "Nobody yet"
+msgstr "Personne pour l'instant"
+
+#: templates/config/projects.html.twig
+msgid "Inactive"
+msgstr "Inactif"
+
+#: templates/config/projects.html.twig
+msgid "Error"
+msgstr "Erreur"
+
+#: templates/config/projects.html.twig
+msgid "Active"
+msgstr "Actif"
+
+#: templates/config/rights.html.twig
 msgid "Rights are cumulative: \"Read\" is required for the others. The same rights can be edited in the \"Azure DevOps\" tab of each profile (Administration > Profiles). Self-service profiles cannot use the plugin. On top of these rights, a technician only works with the projects he is allowed to use (see each project)."
 msgstr "Les droits sont cumulatifs : « Lecture » est requis pour les autres. Les mêmes droits se modifient dans l'onglet « Azure DevOps » de chaque profil (Administration > Profils). Les profils de l'interface simplifiée ne peuvent pas utiliser le plugin. En plus de ces droits, un technicien ne travaille qu'avec les projets qu'il est autorisé à utiliser (voir chaque projet)."
 
-#: templates/config.html.twig
+#: templates/config/rights.html.twig
 msgid "Profile"
 msgstr "Profil"
 
-#: templates/config.html.twig
+#: templates/config/rights.html.twig
 msgid "You need the update right on profiles to change these rights."
 msgstr "Il faut le droit de modification sur les profils pour changer ces droits."
 
-#: templates/config.html.twig
+#: templates/config/rights.html.twig
 msgid "Save the rights"
 msgstr "Enregistrer les droits"
 
-#: templates/project.html.twig
-msgid "New Azure DevOps project"
-msgstr "Nouveau projet Azure DevOps"
-
-#: templates/project.html.twig
+#: templates/project/access.html.twig
 msgid "Back to the configuration"
 msgstr "Retour à la configuration"
 
-#: templates/project.html.twig
-msgid "Connection"
-msgstr "Connexion"
-
-#: templates/project.html.twig
-msgid "Shown to technicians when they choose where to create the work item."
-msgstr "Affiché aux techniciens quand ils choisissent où créer l'élément de travail."
-
-#: templates/project.html.twig
-msgid "Organization"
-msgstr "Organisation"
-
-#: templates/project.html.twig
-msgid "The name, or the URL (https://dev.azure.com/my-organization)."
-msgstr "Le nom, ou l'URL (https://dev.azure.com/mon-organisation)."
-
-#: templates/project.html.twig
-msgid "Project name in Azure DevOps"
-msgstr "Nom du projet dans Azure DevOps"
-
-#: templates/project.html.twig
-msgid "Personal access token (PAT)"
-msgstr "Jeton d'accès personnel (PAT)"
-
-#: templates/project.html.twig
-msgid "Microsoft Entra application (service principal)"
-msgstr "Application Microsoft Entra (principal de service)"
-
-#: templates/project.html.twig
-msgid "A personal access token belongs to a person: it stops working when that account is disabled or the token expires. An Entra application is not tied to anybody."
-msgstr "Un jeton d'accès personnel appartient à une personne : il cesse de fonctionner quand ce compte est désactivé ou que le jeton expire. Une application Entra n'est liée à personne."
-
-#: templates/project.html.twig
-msgid "Access token (PAT)"
-msgstr "Jeton d'accès (PAT)"
-
-#: templates/project.html.twig
-msgid "(unchanged)"
-msgstr "(inchangé)"
-
-#: templates/project.html.twig
-msgid "A personal access token with the \"Work Items (Read & write)\" and \"Project and Team (Read)\" scopes, whose owner can work on this project. It is stored encrypted, never shown again, and used only for this project."
-msgstr "Un jeton d'accès personnel avec les portées « Work Items (Read & write) » et « Project and Team (Read) », dont le propriétaire peut travailler sur ce projet. Il est stocké chiffré, jamais ré-affiché, et utilisé uniquement pour ce projet."
-
-#: templates/project.html.twig
-msgid "Tenant ID"
-msgstr "Identifiant du tenant"
-
-#: templates/project.html.twig
-msgid "The directory (tenant) ID, or its domain name."
-msgstr "L'identifiant du répertoire (tenant), ou son nom de domaine."
-
-#: templates/project.html.twig
-msgid "Application (client) ID"
-msgstr "Identifiant de l'application (client)"
-
-#: templates/project.html.twig
-msgid "Client secret"
-msgstr "Secret client"
-
-#: templates/project.html.twig
-msgid "The secret value (not its ID). It is stored encrypted, never shown again, and used only for this project."
-msgstr "La valeur du secret (pas son identifiant). Il est stocké chiffré, jamais ré-affiché, et utilisé uniquement pour ce projet."
-
-#: templates/project.html.twig
-msgid "Before it can work, two things must be done outside GLPI. 1) In Microsoft Entra: register the application and create a client secret. 2) In Azure DevOps: Organization settings (gear, bottom left) > Users > Add users, search the application by its name, access level Basic, \"Add to projects\": this project, group \"Project Contributors\". The organization must be connected to the same Entra tenant. The README gives the steps one by one."
-msgstr "Pour fonctionner, deux choses doivent être faites en dehors de GLPI. 1) Dans Microsoft Entra : enregistrer l'application et créer un secret client. 2) Dans Azure DevOps : Organization settings (roue dentée, en bas à gauche) > Users > Add users, rechercher l'application par son nom, niveau d'accès Basic, « Add to projects » : ce projet, groupe « Project Contributors ». L'organisation doit être rattachée au même tenant Entra. Le README donne les étapes une par une."
-
-#: templates/project.html.twig
-msgid "An inactive project cannot be chosen, and its work items are not checked."
-msgstr "Un projet inactif ne peut pas être choisi, et ses éléments de travail ne sont pas vérifiés."
-
-#: templates/project.html.twig
-msgid "Work items"
-msgstr "Éléments de travail"
-
-#: templates/project.html.twig
-msgid "Save with \"Save and test the connection\" to read the work item types of the project: they can then be chosen from a list."
-msgstr "Enregistrez avec « Enregistrer et tester la connexion » pour lire les types d'éléments de travail du projet : ils pourront alors être choisis dans une liste."
-
-#: templates/project.html.twig
-msgid "Default type of work item"
-msgstr "Type d'élément de travail par défaut"
-
-#: templates/project.html.twig
-msgid "Created when the technician does not choose another type. For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). The closure of the work items that are not of a \"followup only\" type is what solves the ticket."
-msgstr "Créé quand le technicien ne choisit pas un autre type. Par exemple User Story (Agile), Product Backlog Item (Scrum) ou Issue (Basic). C'est la clôture des éléments qui ne sont pas d'un type « suivi uniquement » qui résout le ticket."
-
-#: templates/project.html.twig
-msgid "Only offer some types in the ticket"
-msgstr "Ne proposer que certains types dans le ticket"
-
-#: templates/project.html.twig
-msgid "Unchecked (default): the technician chooses among every type of the project read from Azure DevOps at the last \"Save and test the connection\", the default type first. Checked: only the default type and the ones chosen below. Each type has its own required fields, listed further down."
-msgstr "Décoché (par défaut) : le technicien choisit parmi tous les types du projet lus dans Azure DevOps lors du dernier « Enregistrer et tester la connexion », le type par défaut en premier. Coché : seulement le type par défaut et ceux choisis ci-dessous. Chaque type a ses propres champs obligatoires, listés plus bas."
-
-#: templates/project.html.twig
-msgid "Types offered in the ticket"
-msgstr "Types proposés dans le ticket"
-
-#: templates/project.html.twig
-msgid "In addition to the default type, which is always offered."
-msgstr "En plus du type par défaut, toujours proposé."
-
-#: templates/project.html.twig
-msgid "Types that can be the parent of a new work item"
-msgstr "Types pouvant être le parent d'un nouvel élément de travail"
-
-#: templates/project.html.twig
-msgid "The technician can create the work item under one of these (Epic, Feature...), and link existing ones. Leave empty to disable parents."
-msgstr "Le technicien peut créer l'élément sous l'un d'eux (Epic, Feature…) et lier des éléments existants. Laisser vide pour désactiver les parents."
-
-#: templates/project.html.twig
-msgid "\"Followup only\" types"
-msgstr "Types « suivi uniquement »"
-
-#: templates/project.html.twig
-msgid "When such a work item is done, a private followup is added to the ticket, but the ticket is never solved: an Epic usually groups many tickets."
-msgstr "Quand un tel élément est terminé, un suivi privé est ajouté au ticket, mais le ticket n'est jamais résolu : un Epic regroupe en général de nombreux tickets."
-
-#: templates/project.html.twig
-msgid "A work item is \"done\" when its state is in the category"
-msgstr "Un élément est « terminé » quand son état est dans la catégorie"
-
-#: templates/project.html.twig
-msgid "Categories come from the process template (e.g. Done, Closed = Completed). \"Removed\" is always handled separately: the work item is no longer followed."
-msgstr "Les catégories viennent du modèle de processus (p. ex. Done, Closed = Completed). « Removed » est toujours traité à part : l'élément n'est plus suivi."
-
-#: templates/project.html.twig
-msgid "Area path"
-msgstr "Area path"
-
-#: templates/project.html.twig
-msgid "Optional. Empty = the default area of the project."
-msgstr "Facultatif. Vide = la zone par défaut du projet."
-
-#: templates/project.html.twig
-msgid "Default tags"
-msgstr "Tags par défaut"
-
-#: templates/project.html.twig
-msgid "Added to every work item. The list offers the tags that exist in the project in Azure DevOps (once the project is saved with its credentials); a new one can be typed."
-msgstr "Ajoutés à chaque élément de travail. La liste propose les tags qui existent dans le projet Azure DevOps (une fois le projet enregistré avec ses identifiants) ; un nouveau peut être saisi."
-
-#: templates/project.html.twig
-msgid "Only send tags that already exist in Azure DevOps"
-msgstr "N'envoyer que des tags qui existent déjà dans Azure DevOps"
-
-#: templates/project.html.twig
-msgid "For an account that cannot create tags (the \"Stakeholder\" access level can only use existing ones): the other tags are left out, and the technician is told, instead of making the creation fail. In the ticket, only existing tags can then be chosen."
-msgstr "Pour un compte qui ne peut pas créer de tags (le niveau d'accès « Stakeholder » ne peut utiliser que les existants) : les autres tags sont omis, et le technicien en est informé, au lieu de faire échouer la création. Dans le ticket, seuls les tags existants peuvent alors être choisis."
-
-#: templates/project.html.twig
-msgid "Default fields"
-msgstr "Champs par défaut"
-
-#: templates/project.html.twig
-msgid "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id}, {title}, {entity} (entity of the ticket), {category} (its category) and {requester} (its first requester). Lines starting with # are ignored."
-msgstr "Valeurs des champs que le processus exige et que le plugin ne renseigne pas (un élément ne peut pas être créé sans eux). Un par ligne : Nom.Référence = valeur (tous les types) ou Type : Nom.Référence = valeur (ce type seulement, p. ex. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Variables : {priority} (priorité du ticket de 1 = la plus urgente à 4 = la plus basse), {id}, {title}, {entity} (entité du ticket), {category} (sa catégorie) et {requester} (son premier demandeur). Les lignes commençant par # sont ignorées."
-
-#: templates/project.html.twig
-msgid "Fields required by the process for the type"
-msgstr "Champs exigés par le processus pour le type"
-
-#: templates/project.html.twig
-msgid "Reference name"
-msgstr "Nom de référence"
-
-#: templates/project.html.twig
-msgid "Allowed values"
-msgstr "Valeurs autorisées"
-
-#: templates/project.html.twig
-msgid "Default in the process"
-msgstr "Valeur par défaut du processus"
-
-#: templates/project.html.twig
-msgid "Ask in the ticket"
-msgstr "Demander dans le ticket"
-
-#: templates/project.html.twig
-msgid "Not asked"
-msgstr "Non demandé"
-
-#: templates/project.html.twig
-msgid "Has a value"
-msgstr "Valeur renseignée"
-
-#: templates/project.html.twig
-msgid "Needs a value"
-msgstr "Valeur à renseigner"
-
-#: templates/project.html.twig
-msgid "Read from Azure DevOps. The technician chooses these values in the ticket; give them a default here (one of the allowed values). Untick \"Ask in the ticket\" for a field that Azure DevOps lists as required but that is not really one for you (hidden in the form, or filled in by the process, as its default value suggests): it is then no longer asked in the ticket."
-msgstr "Lus dans Azure DevOps. Le technicien choisit ces valeurs dans le ticket ; donnez-leur ici une valeur par défaut (l'une des valeurs autorisées). Décochez « Demander dans le ticket » pour un champ qu'Azure DevOps indique comme obligatoire mais qui ne l'est pas vraiment pour vous (masqué dans le formulaire, ou rempli par le processus, comme le suggère sa valeur par défaut) : il n'est alors plus demandé dans le ticket."
-
-#: templates/project.html.twig
-msgid "Who can use this project"
-msgstr "Qui peut utiliser ce projet"
-
-#: templates/project.html.twig
+#: templates/project/access.html.twig
 msgid "Restrict to the users and groups below"
 msgstr "Restreindre aux utilisateurs et groupes ci-dessous"
 
-#: templates/project.html.twig
+#: templates/project/access.html.twig
 msgid "Unchecked: every technician who has the \"create\" right of the plugin can use this project. Checked: only the members of the groups and the users listed here (a technician in several groups gets all their projects). With nobody listed, nobody can use the project."
 msgstr "Décoché : tout technicien ayant le droit « créer » du plugin peut utiliser ce projet. Coché : seuls les membres des groupes et les utilisateurs listés ici (un technicien dans plusieurs groupes obtient tous leurs projets). Si personne n'est listé, personne ne peut utiliser le projet."
 
-#: templates/project.html.twig
+#: templates/project/access.html.twig
 msgid "Groups"
 msgstr "Groupes"
 
-#: templates/project.html.twig
+#: templates/project/access.html.twig
 msgid "Users"
 msgstr "Utilisateurs"
 
-#: templates/project.html.twig
-msgid "Save and test the connection"
-msgstr "Enregistrer et tester la connexion"
-
-#: templates/project.html.twig
-msgid "Refresh the types and fields from Azure DevOps"
-msgstr "Actualiser les types et les champs depuis Azure DevOps"
-
-#: templates/project.html.twig
-msgid "Last read:"
-msgstr "Dernière lecture :"
-
-#: templates/project.html.twig
-msgid "The list of the types is also refreshed by itself, at most once an hour, when a ticket is opened."
-msgstr "La liste des types s'actualise aussi d'elle-même, au plus une fois par heure, à l'ouverture d'un ticket."
-
-#: templates/project.html.twig
-msgid "Delete this project and its configuration (token included)?"
-msgstr "Supprimer ce projet et sa configuration (jeton compris) ?"
-
-#: templates/project.html.twig
-msgid "Delete the project"
-msgstr "Supprimer le projet"
-
-#: templates/project.html.twig
+#: templates/project/access.html.twig
 msgid "Search a group…"
 msgstr "Rechercher un groupe…"
 
-#: templates/project.html.twig
+#: templates/project/access.html.twig
 msgid "Search a user…"
 msgstr "Rechercher un utilisateur…"
+
+#: templates/project/connection.html.twig
+msgid "Shown to technicians when they choose where to create the work item."
+msgstr "Affiché aux techniciens quand ils choisissent où créer l'élément de travail."
+
+#: templates/project/connection.html.twig
+msgid "Organization"
+msgstr "Organisation"
+
+#: templates/project/connection.html.twig
+msgid "The name, or the URL (https://dev.azure.com/my-organization)."
+msgstr "Le nom, ou l'URL (https://dev.azure.com/mon-organisation)."
+
+#: templates/project/connection.html.twig
+msgid "Project name in Azure DevOps"
+msgstr "Nom du projet dans Azure DevOps"
+
+#: templates/project/connection.html.twig
+msgid "Personal access token (PAT)"
+msgstr "Jeton d'accès personnel (PAT)"
+
+#: templates/project/connection.html.twig
+msgid "Microsoft Entra application (service principal)"
+msgstr "Application Microsoft Entra (principal de service)"
+
+#: templates/project/connection.html.twig
+msgid "A personal access token belongs to a person: it stops working when that account is disabled or the token expires. An Entra application is not tied to anybody."
+msgstr "Un jeton d'accès personnel appartient à une personne : il cesse de fonctionner quand ce compte est désactivé ou que le jeton expire. Une application Entra n'est liée à personne."
+
+#: templates/project/connection.html.twig
+msgid "Access token (PAT)"
+msgstr "Jeton d'accès (PAT)"
+
+#: templates/project/connection.html.twig
+msgid "(unchanged)"
+msgstr "(inchangé)"
+
+#: templates/project/connection.html.twig
+msgid "A personal access token with the \"Work Items (Read & write)\" and \"Project and Team (Read)\" scopes, whose owner can work on this project. It is stored encrypted, never shown again, and used only for this project."
+msgstr "Un jeton d'accès personnel avec les portées « Work Items (Read & write) » et « Project and Team (Read) », dont le propriétaire peut travailler sur ce projet. Il est stocké chiffré, jamais ré-affiché, et utilisé uniquement pour ce projet."
+
+#: templates/project/connection.html.twig
+msgid "Tenant ID"
+msgstr "Identifiant du tenant"
+
+#: templates/project/connection.html.twig
+msgid "The directory (tenant) ID, or its domain name."
+msgstr "L'identifiant du répertoire (tenant), ou son nom de domaine."
+
+#: templates/project/connection.html.twig
+msgid "Application (client) ID"
+msgstr "Identifiant de l'application (client)"
+
+#: templates/project/connection.html.twig
+msgid "Client secret"
+msgstr "Secret client"
+
+#: templates/project/connection.html.twig
+msgid "The secret value (not its ID). It is stored encrypted, never shown again, and used only for this project."
+msgstr "La valeur du secret (pas son identifiant). Il est stocké chiffré, jamais ré-affiché, et utilisé uniquement pour ce projet."
+
+#: templates/project/connection.html.twig
+msgid "Before it can work, two things must be done outside GLPI. 1) In Microsoft Entra: register the application and create a client secret. 2) In Azure DevOps: Organization settings (gear, bottom left) > Users > Add users, search the application by its name, access level Basic, \"Add to projects\": this project, group \"Project Contributors\". The organization must be connected to the same Entra tenant. The README gives the steps one by one."
+msgstr "Pour fonctionner, deux choses doivent être faites en dehors de GLPI. 1) Dans Microsoft Entra : enregistrer l'application et créer un secret client. 2) Dans Azure DevOps : Organization settings (roue dentée, en bas à gauche) > Users > Add users, rechercher l'application par son nom, niveau d'accès Basic, « Add to projects » : ce projet, groupe « Project Contributors ». L'organisation doit être rattachée au même tenant Entra. Le README donne les étapes une par une."
+
+#: templates/project/connection.html.twig
+msgid "An inactive project cannot be chosen, and its work items are not checked."
+msgstr "Un projet inactif ne peut pas être choisi, et ses éléments de travail ne sont pas vérifiés."
+
+#: templates/project/connection.html.twig
+msgid "Save and test the connection"
+msgstr "Enregistrer et tester la connexion"
+
+#: templates/project/connection.html.twig
+msgid "Delete this project and its configuration (token included)?"
+msgstr "Supprimer ce projet et sa configuration (jeton compris) ?"
+
+#: templates/project/connection.html.twig
+msgid "Delete the project"
+msgstr "Supprimer le projet"
+
+#: templates/project/fields.html.twig
+msgid "Default tags"
+msgstr "Tags par défaut"
+
+#: templates/project/fields.html.twig
+msgid "Added to every work item. The list offers the tags that exist in the project in Azure DevOps (once the project is saved with its credentials); a new one can be typed."
+msgstr "Ajoutés à chaque élément de travail. La liste propose les tags qui existent dans le projet Azure DevOps (une fois le projet enregistré avec ses identifiants) ; un nouveau peut être saisi."
+
+#: templates/project/fields.html.twig
+msgid "Only send tags that already exist in Azure DevOps"
+msgstr "N'envoyer que des tags qui existent déjà dans Azure DevOps"
+
+#: templates/project/fields.html.twig
+msgid "For an account that cannot create tags (the \"Stakeholder\" access level can only use existing ones): the other tags are left out, and the technician is told, instead of making the creation fail. In the ticket, only existing tags can then be chosen."
+msgstr "Pour un compte qui ne peut pas créer de tags (le niveau d'accès « Stakeholder » ne peut utiliser que les existants) : les autres tags sont omis, et le technicien en est informé, au lieu de faire échouer la création. Dans le ticket, seuls les tags existants peuvent alors être choisis."
+
+#: templates/project/fields.html.twig
+msgid "Default fields"
+msgstr "Champs par défaut"
+
+#: templates/project/fields.html.twig
+msgid "Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id}, {title}, {entity} (entity of the ticket), {category} (its category) and {requester} (its first requester). Lines starting with # are ignored."
+msgstr "Valeurs des champs que le processus exige et que le plugin ne renseigne pas (un élément ne peut pas être créé sans eux). Un par ligne : Nom.Référence = valeur (tous les types) ou Type : Nom.Référence = valeur (ce type seulement, p. ex. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Variables : {priority} (priorité du ticket de 1 = la plus urgente à 4 = la plus basse), {id}, {title}, {entity} (entité du ticket), {category} (sa catégorie) et {requester} (son premier demandeur). Les lignes commençant par # sont ignorées."
+
+#: templates/project/fields.html.twig
+msgid "Fields required by the process for the type"
+msgstr "Champs exigés par le processus pour le type"
+
+#: templates/project/fields.html.twig
+msgid "Reference name"
+msgstr "Nom de référence"
+
+#: templates/project/fields.html.twig
+msgid "Allowed values"
+msgstr "Valeurs autorisées"
+
+#: templates/project/fields.html.twig
+msgid "Default in the process"
+msgstr "Valeur par défaut du processus"
+
+#: templates/project/fields.html.twig
+msgid "Ask in the ticket"
+msgstr "Demander dans le ticket"
+
+#: templates/project/fields.html.twig
+msgid "Not asked"
+msgstr "Non demandé"
+
+#: templates/project/fields.html.twig
+msgid "Has a value"
+msgstr "Valeur renseignée"
+
+#: templates/project/fields.html.twig
+msgid "Needs a value"
+msgstr "Valeur à renseigner"
+
+#: templates/project/fields.html.twig
+msgid "Read from Azure DevOps. The technician chooses these values in the ticket; give them a default here (one of the allowed values). Untick \"Ask in the ticket\" for a field that Azure DevOps lists as required but that is not really one for you (hidden in the form, or filled in by the process, as its default value suggests): it is then no longer asked in the ticket."
+msgstr "Lus dans Azure DevOps. Le technicien choisit ces valeurs dans le ticket ; donnez-leur ici une valeur par défaut (l'une des valeurs autorisées). Décochez « Demander dans le ticket » pour un champ qu'Azure DevOps indique comme obligatoire mais qui ne l'est pas vraiment pour vous (masqué dans le formulaire, ou rempli par le processus, comme le suggère sa valeur par défaut) : il n'est alors plus demandé dans le ticket."
+
+#: templates/project/fields.html.twig
+msgid "Refresh the types and fields from Azure DevOps"
+msgstr "Actualiser les types et les champs depuis Azure DevOps"
+
+#: templates/project/fields.html.twig
+msgid "Last read:"
+msgstr "Dernière lecture :"
+
+#: templates/project/fields.html.twig
+msgid "The list of the types is also refreshed by itself, at most once an hour, when a ticket is opened."
+msgstr "La liste des types s'actualise aussi d'elle-même, au plus une fois par heure, à l'ouverture d'un ticket."
+
+#: templates/project/work_items.html.twig
+msgid "Save with \"Save and test the connection\" to read the work item types of the project: they can then be chosen from a list."
+msgstr "Enregistrez avec « Enregistrer et tester la connexion » pour lire les types d'éléments de travail du projet : ils pourront alors être choisis dans une liste."
+
+#: templates/project/work_items.html.twig
+msgid "Default type of work item"
+msgstr "Type d'élément de travail par défaut"
+
+#: templates/project/work_items.html.twig
+msgid "Created when the technician does not choose another type. For example User Story (Agile), Product Backlog Item (Scrum) or Issue (Basic). The closure of the work items that are not of a \"followup only\" type is what solves the ticket."
+msgstr "Créé quand le technicien ne choisit pas un autre type. Par exemple User Story (Agile), Product Backlog Item (Scrum) ou Issue (Basic). C'est la clôture des éléments qui ne sont pas d'un type « suivi uniquement » qui résout le ticket."
+
+#: templates/project/work_items.html.twig
+msgid "Only offer some types in the ticket"
+msgstr "Ne proposer que certains types dans le ticket"
+
+#: templates/project/work_items.html.twig
+msgid "Unchecked (default): the technician chooses among every type of the project read from Azure DevOps at the last \"Save and test the connection\", the default type first. Checked: only the default type and the ones chosen below. Each type has its own required fields, listed further down."
+msgstr "Décoché (par défaut) : le technicien choisit parmi tous les types du projet lus dans Azure DevOps lors du dernier « Enregistrer et tester la connexion », le type par défaut en premier. Coché : seulement le type par défaut et ceux choisis ci-dessous. Chaque type a ses propres champs obligatoires, listés plus bas."
+
+#: templates/project/work_items.html.twig
+msgid "Types offered in the ticket"
+msgstr "Types proposés dans le ticket"
+
+#: templates/project/work_items.html.twig
+msgid "In addition to the default type, which is always offered."
+msgstr "En plus du type par défaut, toujours proposé."
+
+#: templates/project/work_items.html.twig
+msgid "Types that can be the parent of a new work item"
+msgstr "Types pouvant être le parent d'un nouvel élément de travail"
+
+#: templates/project/work_items.html.twig
+msgid "The technician can create the work item under one of these (Epic, Feature...), and link existing ones. Leave empty to disable parents."
+msgstr "Le technicien peut créer l'élément sous l'un d'eux (Epic, Feature…) et lier des éléments existants. Laisser vide pour désactiver les parents."
+
+#: templates/project/work_items.html.twig
+msgid "\"Followup only\" types"
+msgstr "Types « suivi uniquement »"
+
+#: templates/project/work_items.html.twig
+msgid "When such a work item is done, a private followup is added to the ticket, but the ticket is never solved: an Epic usually groups many tickets."
+msgstr "Quand un tel élément est terminé, un suivi privé est ajouté au ticket, mais le ticket n'est jamais résolu : un Epic regroupe en général de nombreux tickets."
+
+#: templates/project/work_items.html.twig
+msgid "A work item is \"done\" when its state is in the category"
+msgstr "Un élément est « terminé » quand son état est dans la catégorie"
+
+#: templates/project/work_items.html.twig
+msgid "Categories come from the process template (e.g. Done, Closed = Completed). \"Removed\" is always handled separately: the work item is no longer followed."
+msgstr "Les catégories viennent du modèle de processus (p. ex. Done, Closed = Completed). « Removed » est toujours traité à part : l'élément n'est plus suivi."
+
+#: templates/project/work_items.html.twig
+msgid "Area path"
+msgstr "Area path"
+
+#: templates/project/work_items.html.twig
+msgid "Optional. Empty = the default area of the project."
+msgstr "Facultatif. Vide = la zone par défaut du projet."
 
 #: templates/ticket_tab.html.twig
 msgid "No Azure DevOps work item is linked to this ticket."

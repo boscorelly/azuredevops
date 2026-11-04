@@ -1,0 +1,95 @@
+<div class="m-3">
+<p><a href="{{ back_url }}"><i class="ti ti-arrow-left"></i> {{ __('Back to the configuration', 'azuredevops') }}</a></p>
+{% if project.last_error %}
+    <div class="alert alert-danger">{{ project.last_error }}</div>
+{% endif %}
+<form method="post" action="{{ form_url }}">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="id" value="{{ project.id }}">
+    <input type="hidden" name="_zone" value="fields">
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Fields and tags', 'azuredevops') }}</h3></div>
+        <div class="card-body">
+            <div class="mb-3">
+                    <label class="form-label" for="ado_tags">{{ __('Default tags', 'azuredevops') }}</label>
+                    <select id="ado_tags" name="default_tags[]" class="form-select" multiple style="width:100%">
+                        {% for t in default_tags %}<option value="{{ t }}" selected>{{ t }}</option>{% endfor %}
+                    </select>
+                    <div class="form-text">{{ __('Added to every work item. The list offers the tags that exist in the project in Azure DevOps (once the project is saved with its credentials); a new one can be typed.', 'azuredevops') }}</div>
+            </div>
+
+
+            <label class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="restrict_tags" value="1" {{ project.restrict_tags ? 'checked' }}>
+                <span class="form-check-label">{{ __('Only send tags that already exist in Azure DevOps', 'azuredevops') }}</span>
+            </label>
+            <div class="form-text ms-4 mb-3">{{ __('For an account that cannot create tags (the "Stakeholder" access level can only use existing ones): the other tags are left out, and the technician is told, instead of making the creation fail. In the ticket, only existing tags can then be chosen.', 'azuredevops') }}</div>
+
+            <div class="mb-3">
+                <label class="form-label" for="ado_fields">{{ __('Default fields', 'azuredevops') }}</label>
+                <textarea id="ado_fields" name="default_fields" class="form-control font-monospace" rows="4" placeholder="Microsoft.VSTS.Common.Priority = {priority}">{{ project.default_fields }}</textarea>
+                <div class="form-text">{{ __('Values for the fields the process requires and the plugin does not fill in (a work item cannot be created without them). One per line: Reference.Name = value (every type) or Type: Reference.Name = value (that type only, e.g. Bug: Microsoft.VSTS.Common.Severity = 2 - High). Placeholders: {priority} (priority of the ticket as 1 = most urgent to 4 = lowest), {id}, {title}, {entity} (entity of the ticket), {category} (its category) and {requester} (its first requester). Lines starting with # are ignored.', 'azuredevops') }}</div>
+            </div>
+
+            {% for type_name, required_fields in required_by_type %}{% if required_fields is not empty %}
+                <div class="mb-3">
+                    <label class="form-label">{{ __('Fields required by the process for the type', 'azuredevops') }} <strong>{{ type_name }}</strong></label>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th>{{ __('Reference name', 'azuredevops') }}</th>
+                                    <th>{{ __('Name', 'azuredevops') }}</th>
+                                    <th>{{ __('Allowed values', 'azuredevops') }}</th>
+                                    <th>{{ __('Default in the process', 'azuredevops') }}</th>
+                                    <th class="text-center">{{ __('Ask in the ticket', 'azuredevops') }}</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for f in required_fields %}
+                                <tr>
+                                    <td><code>{{ f.ref }}</code></td>
+                                    <td>{{ f.name }}</td>
+                                    <td class="small">{{ f.allowed is empty ? '—' : f.allowed|join(', ') }}</td>
+                                    <td class="small">{{ f.default is not null ? f.default : '—' }}</td>
+                                    <td class="text-center">
+                                        <input type="hidden" name="listed_fields[{{ type_name }}][]" value="{{ f.ref }}">
+                                        <input class="form-check-input" type="checkbox" name="ask_fields[{{ type_name }}][]" value="{{ f.ref }}" {{ f.hidden ? '' : 'checked' }} aria-label="{{ __('Ask in the ticket', 'azuredevops') }}: {{ f.ref }}">
+                                    </td>
+                                    <td>{% if f.hidden %}<span class="badge bg-secondary-lt">{{ __('Not asked', 'azuredevops') }}</span>{% elseif f.covered %}<span class="badge bg-green-lt">{{ __('Has a value', 'azuredevops') }}</span>{% else %}<span class="badge bg-orange-lt">{{ __('Needs a value', 'azuredevops') }}</span>{% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}{% endfor %}
+            {% set any_required = false %}{% for t, fl in required_by_type %}{% if fl is not empty %}{% set any_required = true %}{% endif %}{% endfor %}
+            {% if any_required %}
+                <div class="form-text mb-3">{{ __('Read from Azure DevOps. The technician chooses these values in the ticket; give them a default here (one of the allowed values). Untick "Ask in the ticket" for a field that Azure DevOps lists as required but that is not really one for you (hidden in the form, or filled in by the process, as its default value suggests): it is then no longer asked in the ticket.', 'azuredevops') }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
+</form>
+
+{% if not is_new %}
+    <form method="post" action="{{ refresh_url }}" class="mt-4">
+        <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-secondary"><i class="ti ti-refresh"></i> {{ __('Refresh the types and fields from Azure DevOps', 'azuredevops') }}</button>
+        <span class="text-muted small ms-2">{% if types_read_at %}{{ __('Last read:', 'azuredevops') }} {{ types_read_at }}. {% endif %}{{ __('The list of the types is also refreshed by itself, at most once an hour, when a ticket is opened.', 'azuredevops') }}</span>
+    </form>
+{% endif %}
+
+<script>
+    $(function () {
+        var tagsOptions = {width: '100%', tags: true, tokenSeparators: [',', ';']};
+        {% if tags_url %}
+        tagsOptions.ajax = {url: {{ tags_url|json_encode|raw }}, dataType: 'json', delay: 300, data: function (params) { return {term: params.term || ''}; }};
+        {% endif %}
+        $('#ado_tags').select2(tagsOptions);
+    });
+</script>
+</div>

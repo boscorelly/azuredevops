@@ -716,6 +716,43 @@ $setStatus(Ticket::ASSIGNED, 0);
 $rl2 = Link::createFromTicket($tlock, $toto, 2, 0, '', true, 'none', false);
 ok('reopened: the actions are available again', $rl2['link']->fields['state'] === 'opened');
 
+echo "== Settings saved one zone at a time (one tab of the project page each)\n";
+$zid = Project::saveZone(0, 'connection', ['name' => 'Zoned', 'organization' => 'https://dev.azure.com/acme', 'ado_project' => 'Toto', 'auth_mode' => 'pat', 'token' => 'pat-toto', 'is_active' => '1']);
+$zr = Project::find($zid);
+ok('a new project is created by the connection zone, restricted until users or groups are chosen', (int) $zr['is_restricted'] === 1 && $zr['organization'] === 'acme' && Project::token($zr) === 'pat-toto' && $zr['parent_types'] === 'Epic,Feature' && $zr['default_tags'] === 'glpi' && $zr['done_categories'] === 'Completed');
+ok('so nobody can use it yet', !ProjectAccess::canUse($zr, 2));
+try { Project::saveZone(0, 'work_items', ['workitem_type' => 'Issue']); ok('zone before connection', false); } catch (RuntimeException $e) { ok('another zone cannot create a project: the connection comes first', str_contains($e->getMessage(), 'connection')); }
+try { Project::saveZone($zid, 'nope', []); ok('unknown zone', false); } catch (RuntimeException $e) { ok('an unknown zone is refused', true); }
+Project::saveZone($zid, 'work_items', ['workitem_type' => 'User Story', 'restrict_types' => '1', 'offered_types' => ['Bug'], 'parent_types' => ['Epic'], 'followup_only_types' => ['Epic', 'Feature'], 'done_categories' => ['Resolved'], 'area_path' => 'Toto\\Support',
+    'name' => 'HACKED', 'token' => 'forged', 'is_restricted' => '0', 'default_tags' => 'forged']);
+$zr = Project::find($zid);
+ok('the work items zone saves its own settings', $zr['workitem_type'] === 'User Story' && (int) $zr['restrict_types'] === 1 && $zr['offered_types'] === 'Bug' && $zr['parent_types'] === 'Epic' && $zr['followup_only_types'] === 'Epic,Feature' && $zr['done_categories'] === 'Completed,Resolved' && $zr['area_path'] === 'Toto\\Support', json_encode($zr));
+ok('and ignores what belongs to the other zones (name, token, access, tags)', $zr['name'] === 'Zoned' && Project::token($zr) === 'pat-toto' && (int) $zr['is_restricted'] === 1 && $zr['default_tags'] === 'glpi');
+Project::saveZone($zid, 'work_items', ['workitem_type' => 'User Story']);
+$zr = Project::find($zid);
+ok('a ticked box left unticked and an emptied list count as empty, in that zone only', (int) $zr['restrict_types'] === 0 && $zr['offered_types'] === '' && $zr['parent_types'] === '' && $zr['done_categories'] === 'Completed' && (int) $zr['is_active'] === 1 && (int) $zr['is_restricted'] === 1 && $zr['name'] === 'Zoned');
+Project::saveZone($zid, 'fields', ['default_tags' => ['glpi', 'urgent'], 'restrict_tags' => '1', 'default_fields' => "Custom.All = x\nBug: Custom.B = y"]);
+$zr = Project::find($zid);
+ok('the fields zone saves tags, the option and the default fields', $zr['default_tags'] === 'glpi,urgent' && (int) $zr['restrict_tags'] === 1 && $zr['default_fields'] === "Custom.All = x\nBug: Custom.B = y" && $zr['workitem_type'] === 'User Story');
+try { Project::saveZone($zid, 'fields', ['default_fields' => 'garbage']); ok('bad default field', false); } catch (RuntimeException $e) { ok('an invalid default field refuses the whole form, nothing is saved', Project::find($zid)['default_fields'] === "Custom.All = x\nBug: Custom.B = y"); }
+Project::saveZone($zid, 'access', ['is_restricted' => '1', 'groups' => [$g1], 'users' => [$ua]]);
+ok('the access zone saves the restriction, the groups and the users', ProjectAccess::canUse(Project::find($zid), $ua) && ProjectAccess::canUse(Project::find($zid), $uc) && !ProjectAccess::canUse(Project::find($zid), $ub) && (int) Project::find($zid)['is_restricted'] === 1);
+Project::saveZone($zid, 'access', []);
+ok('emptied: restricted to nobody (the project stays restricted, the lists are emptied)', (int) Project::find($zid)['is_restricted'] === 0 || ProjectAccess::groups($zid) === []);
+ok('an access form without the box ticked opens the project to every technician', (int) Project::find($zid)['is_restricted'] === 0 && Project::find($zid)['default_tags'] === 'glpi,urgent');
+Project::saveZone($zid, 'connection', ['name' => 'Zoned 2', 'organization' => 'acme', 'ado_project' => 'Toto', 'auth_mode' => 'pat', 'token' => '']);
+$zr = Project::find($zid);
+ok('the connection zone keeps the token when left empty, and unticked "active" deactivates only that', $zr['name'] === 'Zoned 2' && Project::token($zr) === 'pat-toto' && (int) $zr['is_active'] === 0 && (int) $zr['is_restricted'] === 0 && $zr['workitem_type'] === 'User Story');
+Project::remove($zid);
+ok('removed', Project::find($zid) === null);
+mock('/_mock/rules', ['project' => 'Tata', 'type' => 'Issue', 'fields' => ['Microsoft.VSTS.Common.Priority' => ['name' => 'Priorité', 'allowed' => ['1', '2']]]]);
+$zn = Project::saveZone(0, 'connection', ['name' => 'FirstTest', 'organization' => 'acme', 'ado_project' => 'Tata', 'auth_mode' => 'pat', 'token' => 'pat-tata', 'is_active' => '1']);
+ok('a new project has no types and no default type yet', Project::typeNames(Project::find($zn)) === [] && Project::defaultType(Project::find($zn)) === '');
+Project::testAndCache($zn);
+ok('the first test reads the required fields of the types it has just discovered (not only those of an older cache)', Project::requiredFieldsRead(Project::find($zn), 'Issue') && array_column(Project::requiredFields(Project::find($zn), 'Issue'), 'ref') === ['Microsoft.VSTS.Common.Priority'], json_encode(Project::cache(Project::find($zn))['required'] ?? null));
+Project::remove($zn);
+mock('/_mock/rules', ['project' => 'Tata', 'type' => 'Issue', 'fields' => []]);
+
 echo "== Microsoft Entra application instead of a personal token\n";
 $signins = fn() => count(mock('/_mock/dump')['token_requests']);
 $authCount = fn(string $type) => count(array_filter(requests(), fn($r) => $r['auth_type'] === $type));

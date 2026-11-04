@@ -14,7 +14,7 @@ Tested on **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) against a mock of the Azure 
 
 ## Configure the projects
 
-*Setup > Plugins > Azure DevOps > Add a project*. For each project:
+*Setup > Plugins > Azure DevOps* is GLPI's standard administration page: the tabs are on the left, one per zone of settings (**Azure DevOps projects**, **Work item creation**, **When a work item is done**, **Advanced**, **Rights by profile**), and each tab saves its own zone. *Add a project* (first tab) opens the page of the project, which has its tabs too: **Connection**, **Work items**, **Fields and tags**, **Who can use this project**. A new project starts with its connection; the other tabs appear once it is saved, and it is restricted (nobody can use it) until you choose users or groups. For each project:
 
 | Field | Meaning |
 |---|---|

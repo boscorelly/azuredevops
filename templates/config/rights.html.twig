@@ -1,0 +1,41 @@
+<div class="m-3">
+<form method="post" action="{{ rights_url }}">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Rights by profile', 'azuredevops') }}</h3></div>
+        <div class="card-body">
+            <p class="text-muted">{{ __('Rights are cumulative: "Read" is required for the others. The same rights can be edited in the "Azure DevOps" tab of each profile (Administration > Profiles). Self-service profiles cannot use the plugin. On top of these rights, a technician only works with the projects he is allowed to use (see each project).', 'azuredevops') }}</p>
+            <div class="table-responsive">
+                <table class="table table-vcenter">
+                    <thead>
+                        <tr>
+                            <th>{{ __('Profile', 'azuredevops') }}</th>
+                            {% for value, label in right_labels %}<th class="text-center">{{ label }}</th>{% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for profile in profiles %}
+                        <tr>
+                            <td>{{ profile.name }}<input type="hidden" name="profiles[]" value="{{ profile.id }}"></td>
+                            {% for value, label in right_labels %}
+                                <td class="text-center">
+                                    <input class="form-check-input" type="checkbox" name="rights[{{ profile.id }}][]" value="{{ value }}"
+                                           {{ (profile.value b-and value) ? 'checked' }} {{ can_edit_rights ? '' : 'disabled' }}
+                                           aria-label="{{ profile.name }} – {{ label }}">
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if not can_edit_rights %}
+                <div class="text-muted small">{{ __('You need the update right on profiles to change these rights.', 'azuredevops') }}</div>
+            {% endif %}
+        </div>
+        {% if can_edit_rights %}
+            <div class="card-footer"><button type="submit" class="btn btn-primary">{{ __('Save the rights', 'azuredevops') }}</button></div>
+        {% endif %}
+    </div>
+</form>
+</div>

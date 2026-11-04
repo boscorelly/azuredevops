@@ -18,6 +18,17 @@ def check(name, cond, detail=''):
 os.chdir(os.path.join(here, '..'))
 source = locales.extract()
 keys = {k for k in source}
+# An independent scan (not the extractor's): every text written with __() / _n() anywhere in the plugin must be in the catalogues.
+found_in_files = set()
+for pattern in ('src/**/*.php', 'templates/**/*.twig', 'setup.php', 'hook.php'):
+    for f in glob.glob(pattern, recursive=True):
+        text_ = open(f, encoding='utf-8').read()
+        for m in re.finditer(r"\b_?_n?\(\s*'((?:[^'\\]|\\.)*)'\s*,(?:\s*'((?:[^'\\]|\\.)*)'\s*,\s*[^,)]+,)?\s*'azuredevops'", text_):
+            found_in_files.add(m.group(1).replace("\\'", "'").replace('\\\\', '\\'))
+check('the scan of the files finds the texts (templates in sub-folders included)', len(found_in_files) > 150 and any(f.startswith('templates/') for f in glob.glob('templates/**/*.twig', recursive=True)), len(found_in_files))
+fr_ids = {k[0] for k in locales.read_po('locales/fr_FR.po')}
+missing_in_po = sorted(t for t in found_in_files if t not in fr_ids and t.replace('"', '\\"') not in fr_ids)
+check('every text used anywhere in the plugin is in the catalogue (nothing dropped as "obsolete")', not missing_in_po, missing_in_po[:3])
 PLACEHOLDER = re.compile(r'%(?:\d+\$)?[sd]|\{[a-z_]+\}')
 
 for path in sorted(glob.glob('locales/*.po')):

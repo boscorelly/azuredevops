@@ -1,0 +1,17 @@
+<form method="post" action="{{ form_url }}" class="m-3">
+    <input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="_tab" value="advanced">
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">{{ __('Advanced', 'azuredevops') }}</h3></div>
+        <div class="card-body">
+            <label class="form-label">{{ __('Azure DevOps base URL', 'azuredevops') }}</label>
+            <input type="url" name="api_base_url" class="form-control" value="{{ settings.api_base_url }}" placeholder="https://dev.azure.com">
+            <div class="form-text">{{ __('Leave https://dev.azure.com for Azure DevOps Services.', 'azuredevops') }}</div>
+            <label class="form-label mt-3">{{ __('Microsoft Entra sign-in address', 'azuredevops') }}</label>
+            <input type="url" name="entra_authority" class="form-control" value="{{ settings.entra_authority }}" placeholder="https://login.microsoftonline.com">
+            <div class="form-text">{{ __('Where the Entra applications of the projects sign in. Leave https://login.microsoftonline.com except for a sovereign cloud.', 'azuredevops') }}</div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">{{ __('Save') }}</button>
+</form>

@@ -1,0 +1,58 @@
+<div class="m-3">
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title">{{ __('Azure DevOps projects', 'azuredevops') }}</h3>
+        <div class="card-actions">
+            <a href="{{ new_url }}" class="btn btn-primary btn-sm"><i class="ti ti-plus"></i> {{ __('Add a project', 'azuredevops') }}</a>
+        </div>
+    </div>
+    {% if projects is empty %}
+        <div class="card-body text-muted">{{ __('No project is configured yet. Each project has its own access token and its own list of allowed users and groups.', 'azuredevops') }}</div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead>
+                    <tr>
+                        <th>{{ __('Name', 'azuredevops') }}</th>
+                        <th>{{ __('Organization / project', 'azuredevops') }}</th>
+                        <th>{{ __('Work item type', 'azuredevops') }}</th>
+                        <th>{{ __('Authentication', 'azuredevops') }}</th>
+                        <th>{{ __('Who can use it', 'azuredevops') }}</th>
+                        <th>{{ __('Status', 'azuredevops') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for project in projects %}
+                    <tr>
+                        <td><a href="{{ project_url }}/{{ project.id }}">{{ project.name }}</a></td>
+                        <td class="text-muted">{{ project.target }}</td>
+                        <td>{{ project.type ?: '—' }}{% if project.more_types > 0 %} <span class="text-muted small">+{{ project.more_types }}</span>{% endif %}</td>
+                        <td>{% if project.auth == 'entra' %}<span class="badge bg-purple-lt">{{ __('Entra application', 'azuredevops') }}</span>{% else %}<span class="badge bg-secondary-lt">{{ __('Personal token', 'azuredevops') }}</span>{% endif %}</td>
+                        <td>
+                            {% if not project.is_restricted %}
+                                <span class="badge bg-blue-lt">{{ __('Every technician with the "create" right', 'azuredevops') }}</span>
+                            {% elseif project.users == 0 and project.groups is empty %}
+                                <span class="badge bg-orange-lt">{{ __('Nobody yet', 'azuredevops') }}</span>
+                            {% else %}
+                                {% for group in project.groups %}<span class="badge bg-secondary-lt me-1"><i class="ti ti-users"></i> {{ group }}</span>{% endfor %}
+                                {% if project.users > 0 %}<span class="badge bg-secondary-lt"><i class="ti ti-user"></i> {{ project.users }}</span>{% endif %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not project.is_active %}
+                                <span class="badge bg-secondary-lt">{{ __('Inactive', 'azuredevops') }}</span>
+                            {% elseif project.last_error %}
+                                <span class="badge bg-red-lt">{{ __('Error', 'azuredevops') }}</span>
+                                <div class="text-danger small">{{ project.last_error }}</div>
+                            {% else %}
+                                <span class="badge bg-green-lt">{{ __('Active', 'azuredevops') }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+</div>

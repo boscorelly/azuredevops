@@ -14,7 +14,7 @@ Testé sur **GLPI 11.0.11** (PHP 8.3, MariaDB 10.11) contre un mock de l'API RES
 
 ## Configurer les projets
 
-*Configuration > Plugins > Azure DevOps > Ajouter un projet*. Pour chaque projet :
+*Configuration > Plugins > Azure DevOps* est la page d'administration standard de GLPI : les onglets sont à gauche, un par zone de réglages (**Projets Azure DevOps**, **Création des éléments de travail**, **Quand un élément de travail est terminé**, **Avancé**, **Droits par profil**), et chaque onglet enregistre sa propre zone. *Ajouter un projet* (premier onglet) ouvre la page du projet, qui a aussi ses onglets : **Connexion**, **Éléments de travail**, **Champs et tags**, **Qui peut utiliser ce projet**. Un nouveau projet commence par sa connexion ; les autres onglets apparaissent une fois qu'il est enregistré, et il est restreint (personne ne peut l'utiliser) tant que vous n'avez pas choisi des utilisateurs ou des groupes. Pour chaque projet :
 
 | Champ | Signification |
 |---|---|

@@ -159,6 +159,117 @@ final class Project
     // ------------------------------------------------------------------- saving
 
     /**
+     * The page of a project has one tab per zone of settings, each with a form of its own. A form only changes the
+     * settings of its zone: what it does not list is kept as it was, and anything else it posts is ignored.
+     */
+    public const ZONES = [
+        'connection' => ['name', 'organization', 'ado_project', 'auth_mode', 'tenant_id', 'client_id', 'token', 'client_secret', 'is_active'],
+        'work_items' => ['workitem_type', 'restrict_types', 'offered_types', 'parent_types', 'followup_only_types', 'done_categories', 'area_path'],
+        'fields'     => ['default_tags', 'restrict_tags', 'default_fields', 'listed_fields', 'ask_fields'],
+        'access'     => ['is_restricted', 'users', 'groups'],
+    ];
+
+    /** Check boxes of each zone: absent from the form when unticked. */
+    private const ZONE_FLAGS = [
+        'connection' => ['is_active'],
+        'work_items' => ['restrict_types'],
+        'fields'     => ['restrict_tags'],
+        'access'     => ['is_restricted'],
+    ];
+
+    /** Lists of each zone (multiple choice boxes): absent from the form when nothing is chosen. */
+    private const ZONE_LISTS = [
+        'work_items' => ['offered_types', 'parent_types', 'followup_only_types', 'done_categories'],
+        'fields'     => ['default_tags'],
+        'access'     => ['users', 'groups'],
+    ];
+
+    /**
+     * Settings of a new project: restricted to the users and groups chosen later (nobody until then), the usual parents.
+     *
+     * @return array<string, mixed>
+     */
+    public static function defaultInput(): array
+    {
+        return [
+            'is_active' => 1, 'is_restricted' => 1, 'restrict_types' => 0, 'restrict_tags' => 0, 'auth_mode' => AdoAuth::MODE_PAT,
+            'workitem_type' => '', 'offered_types' => '', 'parent_types' => 'Epic,Feature', 'followup_only_types' => 'Epic,Feature',
+            'done_categories' => 'Completed', 'area_path' => '', 'default_tags' => 'glpi', 'default_fields' => '',
+            'tenant_id' => '', 'client_id' => '',
+        ];
+    }
+
+    /**
+     * What the form would send to leave a stored project as it is (secrets left out: empty keeps them).
+     *
+     * @param array<string, mixed> $row
+     *
+     * @return array<string, mixed>
+     */
+    private static function inputFromRow(array $row): array
+    {
+        $keep = ['name', 'organization', 'ado_project', 'is_active', 'is_restricted', 'restrict_types', 'restrict_tags', 'workitem_type',
+            'offered_types', 'parent_types', 'followup_only_types', 'done_categories', 'area_path', 'default_tags', 'default_fields', 'tenant_id', 'client_id'];
+        $input = ['auth_mode' => (string) ($row['auth_mode'] ?? AdoAuth::MODE_PAT)];
+        foreach ($keep as $key) {
+            $input[$key] = $row[$key] ?? '';
+        }
+
+        return $input;
+    }
+
+    /**
+     * Save the settings of one zone (one tab of the project page). A new project is created by the "connection" zone.
+     *
+     * @param array<string, mixed> $input what the form posted
+     *
+     * @return int id of the project
+     *
+     * @throws RuntimeException with a message that can be shown to the administrator
+     */
+    public static function saveZone(int $id, string $zone, array $input): int
+    {
+        if (!isset(self::ZONES[$zone])) {
+            throw new RuntimeException(__('Invalid form data. Nothing was saved.', 'azuredevops'));
+        }
+        $current = $id > 0 ? self::find($id) : null;
+        if ($id > 0 && $current === null) {
+            throw new RuntimeException(__('Project not found.', 'azuredevops'));
+        }
+        if ($current === null && $zone !== 'connection') {
+            throw new RuntimeException(__('Save the connection of the project first.', 'azuredevops'));
+        }
+
+        // Only what the zone lists; its check boxes and lists count as empty when absent.
+        $posted = array_intersect_key($input, array_flip(self::ZONES[$zone]));
+        foreach (self::ZONE_FLAGS[$zone] ?? [] as $flag) {
+            $posted[$flag] = !empty($input[$flag]) ? 1 : 0;
+        }
+        foreach (self::ZONE_LISTS[$zone] ?? [] as $list) {
+            $posted[$list] = $posted[$list] ?? [];
+        }
+        foreach ($posted as $key => $value) {
+            // a form field is a text, or a list of texts (the lists above, and the table of the required fields)
+            if (!is_scalar($value) && !is_array($value)) {
+                throw new RuntimeException(__('Invalid form data. Nothing was saved.', 'azuredevops'));
+            }
+        }
+
+        $base = $current !== null ? self::inputFromRow($current) : self::defaultInput();
+        // The access zone keeps its users and groups apart from the project's own settings.
+        $users  = $posted['users'] ?? null;
+        $groups = $posted['groups'] ?? null;
+        unset($posted['users'], $posted['groups']);
+
+        $id = self::saveFromInput($posted + $base, $id);
+        if ($zone === 'access') {
+            ProjectAccess::set($id, (array) $users, (array) $groups);
+        }
+
+        return $id;
+    }
+
+    /**
      * Create (id = 0) or update a project from the configuration form. An empty token keeps the stored one.
      *
      * @param array<string, mixed> $input
@@ -784,7 +895,8 @@ final class Project
         // The fields the process requires for each type that can be created (not fatal: only used to help the administrator).
         $cache['required']    = [];
         $cache['required_at'] = $now;
-        foreach (array_slice(self::offeredTypes($project), 0, 12) as $wanted) {
+        // The types offered are those just read from Azure DevOps (the cache of the project may be empty: first test).
+        foreach (array_slice(self::offeredTypes(['types_cache' => json_encode($cache)] + $project), 0, 12) as $wanted) {
             $type = null;
             foreach (array_keys($cache['types']) as $known) {
                 if (strcasecmp((string) $known, $wanted) === 0) {

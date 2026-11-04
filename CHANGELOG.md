@@ -2,6 +2,14 @@
 
 Release checklist: bump `PLUGIN_AZUREDEVOPS_VERSION` in `setup.php`, add the version (compatibility and `download_url`) to `azuredevops.xml`, update this file, tag and publish a release with the `glpi-azuredevops-<version>.tar.bz2` archive.
 
+## 1.0.11
+- **The administration is GLPI's standard page, with the tabs on the left, one per zone of settings** (like the profile page and the other administration pages), instead of one long page. *Setup > Plugins > Azure DevOps* has five tabs: **Azure DevOps projects**, **Work item creation**, **When a work item is done on Azure DevOps**, **Advanced** and **Rights by profile**.
+- **The page of a project has its own tabs too**: **Connection**, **Work items**, **Fields and tags** and **Who can use this project**. A new project starts with its Connection only (the other zones need a saved project) and is created restricted, so nobody can use it until users or groups are chosen.
+- **Each tab is a form of its own and only saves its zone**: what belongs to another tab, or to no setting, is ignored even if it is sent; a form with an invalid value is refused as a whole, with a message; the tab you saved is the one shown again. Nothing changes for the settings already stored.
+- *Fix of the translation tool*: `tools/locales.py` now scans the sub-folders of `templates/` (it would have dropped the translations of the new templates as "obsolete"), and a new check compares the catalogues with an independent scan of all the files.
+- *Fix*: the **first** connection test of a project now reads the required fields of the types it has just discovered; before, the types offered were worked out from the (still empty) previous cache, so nothing was read until the next test or until a type was chosen in a ticket.
+- Update from 1.0.10: nothing to migrate.
+
 ## 1.0.10
 - **Fix: the logo now shows in GLPI.** GLPI reads the logo of a plugin from a file named exactly `logo.png` at the root of the plugin (the plugin list serves it), not from the address of the descriptor. The 1.0.9 logo was called `azuredevops.png`, so GLPI did not find it. The file is now `logo.png`, and `<logo>` in `azuredevops.xml` points to it (it is used by the plugins directory).
 - A test now checks that GLPI serves the logo of the plugin, and that the package contains `logo.png`.
